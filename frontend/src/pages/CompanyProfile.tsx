@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Save } from "lucide-react";
+import { companyProfileAPI } from "@/lib/api";
+import { getSession } from "@/integrations/supabase/client";
+
 
 const CompanyProfile = () => {
   const navigate = useNavigate();
@@ -28,62 +31,60 @@ const CompanyProfile = () => {
     loadProfile();
   }, []);
 
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("company_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (data) {
-        setFormData({
-          company_name: data.company_name || "",
-          description: data.description || "",
-          website: data.website || "",
-          industry: data.industry || "",
-          company_size: data.company_size || "",
-          location: data.location || "",
-          logo_url: data.logo_url || "",
-        });
-      }
-    } catch (error: any) {
-      if (error.code !== "PGRST116") {
-        toast.error("Failed to load profile");
-      }
-    } finally {
-      setLoading(false);
+ const loadProfile = async () => {
+  try {
+    const session = await getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
     }
-  };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    // CHANGED: Use backend API instead of supabase
+    const response = await companyProfileAPI.getProfile();
+    const data = response.profile;
 
-      const { error } = await supabase
-        .from("company_profiles")
-        .upsert({
-          user_id: user.id,
-          ...formData,
-        })
-        .eq("user_id", user.id);
+    if (data) {
+      setFormData({
+        company_name: data.company_name || "",
+        description: data.description || "",
+        website: data.website || "",
+        industry: data.industry || "",
+        company_size: data.company_size || "",
+        location: data.location || "",
+        logo_url: data.logo_url || "",
+      });
+    }
+  } catch (error: any) {
+    // Profile doesn't exist yet, that's ok
+    console.log("No profile yet");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      if (error) throw error;
+const handleSave = async () => {
+  setSaving(true);
+  try {
+    // CHANGED: Use backend API instead of supabase
+    const response = await companyProfileAPI.updateProfile({
+      company_name: formData.company_name,
+      description: formData.description,
+      website: formData.website,
+      industry: formData.industry,
+      company_size: formData.company_size,
+      location: formData.location,
+      logo_url: formData.logo_url,
+    });
+
+    if (response.profile) {
       toast.success("Company profile saved successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save profile");
-    } finally {
-      setSaving(false);
     }
-  };
+  } catch (error: any) {
+    toast.error(error.message || "Failed to save profile");
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) {
     return (

@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Plus, Briefcase, Users, TrendingUp, Eye } from "lucide-react";
+import { internshipAPI } from "@/lib/api";
+import { getSession } from "@/integrations/supabase/client";
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
@@ -22,34 +24,40 @@ const CompanyDashboard = () => {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-  };
+  const session = await getSession();
+  if (!session) {
+    navigate("/auth");
+    return;
+  }
+};
+
 
   const loadStats = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  try {
+    // CHANGED: Use backend API instead of supabase
+    const response = await internshipAPI.getAll({
+      page: 1,
+      limit: 1000, // Get all internships
+    });
 
-      const { data: internships } = await supabase
-        .from("internships")
-        .select("*")
-        .eq("company_id", user.id);
+    const internships = response.internships || [];
+    const totalInternships = internships.length;
+    const totalApplications = internships.reduce(
+      (sum, i) => sum + (i.applications_count || 0),
+      0
+    );
+    const totalViews = internships.reduce(
+      (sum, i) => sum + (i.views_count || 0),
+      0
+    );
 
-      const totalInternships = internships?.length || 0;
-      const totalApplications = internships?.reduce((sum, i) => sum + (i.applications_count || 0), 0) || 0;
-      const totalViews = internships?.reduce((sum, i) => sum + (i.views_count || 0), 0) || 0;
-
-      setStats({ totalInternships, totalApplications, totalViews });
-    } catch (error: any) {
-      toast.error("Failed to load stats");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setStats({ totalInternships, totalApplications, totalViews });
+  } catch (error: any) {
+    toast.error("Failed to load stats");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (

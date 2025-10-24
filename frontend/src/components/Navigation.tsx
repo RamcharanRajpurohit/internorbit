@@ -14,7 +14,7 @@ const Navigation = ({ role }: NavigationProps) => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
-    navigate("/auth");
+    navigate("/");
   };
 
   return (

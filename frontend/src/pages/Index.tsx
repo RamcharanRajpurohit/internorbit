@@ -5,6 +5,9 @@ import StudentDashboard from "./StudentDashboard";
 import CompanyDashboard from "./CompanyDashboard";
 import Landing from "./Landing";
 import Auth from "./Auth";
+import AuthCallback from "./AuthCallback";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -14,69 +17,84 @@ const Index = () => {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    checkAuth().catch((err) => {
-      console.error("Auth check failed:", err);
-    });
+    const initAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const session = data?.session;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          if (session?.user) {
-            setUser(session.user);
-            await loadProfile(session.user.id);
+        if (session?.user) {
+          setUser(session.user);
+
+          // Fetch profile from backend
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (response.ok) {
+            const { user: profileData } = await response.json();
+            localStorage.setItem('userId', JSON.stringify(profileData._id));
+            setProfile(profileData);
           } else {
+            console.warn("Profile fetch failed, redirecting to auth");
             setUser(null);
             setProfile(null);
           }
-        } catch (err) {
-          console.error("Error during auth state change:", err);
-        } finally {
-          setLoading(false);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event);
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user);
+
+          // Fetch profile after sign in
+          try {
+            const response = await fetch(`${API_URL}/auth/me`, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+            });
+
+            if (response.ok) {
+              const { user: profileData } = await response.json();
+              localStorage.setItem('userId', JSON.stringify(profileData._id));
+              setProfile(profileData);
+            }
+          } catch (err) {
+            console.error('Profile fetch error:', err);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          localStorage.removeItem('userId');
+          navigate('/auth');
         }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
-  const checkAuth = async () => {
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      const session = data?.session;
-
-      if (session?.user) {
-        setUser(session.user);
-        await loadProfile(session.user.id);
-      }
-    } catch (err) {
-      console.error("checkAuth failed:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadProfile = async (userId: string) => {
-    // const { data, error } = await supabase
-    //   .from("profiles")
-    //   .select("*")
-    //   .eq("id", userId)
-    //   .single();
-
-    // if (error) {
-    //   console.error("Failed to load profile:", error);
-    //   throw error; // you can remove this if you only want to log
-    // }
-    const  data = {}
-
-    if (data) {
-      setProfile(data);
-    } else {
-      console.warn("Profile not found for user:", userId);
-    }
-  };
-
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
@@ -85,20 +103,29 @@ const Index = () => {
     );
   }
 
-  if (user && profile) {
-    if (location.pathname === "/auth") {
-      navigate("/");
-      return null;
-    }
-
-    if (profile.role === "student") return <StudentDashboard />;
-    return <CompanyDashboard />;
+  // Special routes (always accessible)
+  if (location.pathname === "/auth/callback") {
+    return <AuthCallback />;
   }
 
   if (location.pathname === "/auth") {
+    // If user is already logged in and has profile, redirect to dashboard
+    if (user && profile) {
+      navigate("/");
+      return null;
+    }
     return <Auth />;
   }
 
+  // Authenticated user with profile - show dashboard
+  if (user && profile) {
+    if (profile.role === "student") {
+      return <StudentDashboard />;
+    }
+    return <CompanyDashboard />;
+  }
+
+  // No user or no profile - show landing page
   return <Landing />;
 };
 

@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
+import { applicationAPI } from "@/lib/api";
+import { getSession } from "@/integrations/supabase/client";
+
 import {
   Select,
   SelectContent,
@@ -25,69 +28,46 @@ const CompanyApplicants = () => {
     loadApplications();
   }, []);
 
-  const loadApplications = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("applications")
-        .select(`
-          *,
-          internships (
-            title,
-            company_id
-          ),
-          student:student_id (
-            email,
-            full_name,
-            id
-          )
-        `)
-        .in(
-          "internship_id",
-          (
-            await supabase
-              .from("internships")
-              .select("id")
-              .eq("company_id", user.id)
-          ).data?.map((i: any) => i.id) || []
-        )
-        .order("applied_at", { ascending: false });
-
-      if (error) throw error;
-      setApplications(data || []);
-    } catch (error: any) {
-      toast.error("Failed to load applications");
-    } finally {
-      setLoading(false);
+ const loadApplications = async () => {
+  try {
+    const session = await getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
     }
-  };
 
-  const handleStatusChange = async (
-    applicationId: string,
-    newStatus: string
-  ) => {
-    try {
-      const { error } = await supabase
-        .from("applications")
-        .update({ status: newStatus })
-        .eq("id", applicationId);
+    // CHANGED: Use backend API instead of supabase
+    const response = await applicationAPI.getCompanyApplications({
+      page: 1,
+      limit: 100,
+    });
 
-      if (error) throw error;
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId ? { ...app, status: newStatus } : app
-        )
-      );
-      toast.success("Application status updated!");
-    } catch (error: any) {
-      toast.error("Failed to update status");
-    }
-  };
+    setApplications(response.applications || []);
+  } catch (error: any) {
+    toast.error("Failed to load applications");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleStatusChange = async (
+  applicationId: string,
+  newStatus: string
+) => {
+  try {
+    // CHANGED: Use backend API instead of supabase
+    await applicationAPI.updateStatus(applicationId, newStatus);
+    
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.id === applicationId ? { ...app, status: newStatus } : app
+      )
+    );
+    toast.success("Application status updated!");
+  } catch (error: any) {
+    toast.error("Failed to update status");
+  }
+};
 
   const filteredApplications =
     filterStatus === "all"

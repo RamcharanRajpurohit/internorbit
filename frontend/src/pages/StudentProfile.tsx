@@ -1,7 +1,8 @@
 // src/pages/StudentProfile.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { studentProfileAPI } from "@/lib/api";
+import { getSession } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,68 +34,68 @@ const StudentProfile = () => {
   }, []);
 
   const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("student_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (data) {
-        setProfile(data);
-        setFormData({
-          bio: data.bio || "",
-          university: data.university || "",
-          degree: data.degree || "",
-          graduation_year: data.graduation_year || new Date().getFullYear(),
-          location: data.location || "",
-          skills: data.skills?.join(", ") || "",
-          linkedin_url: data.linkedin_url || "",
-          github_url: data.github_url || "",
-          phone: data.phone || "",
-        });
-      }
-    } catch (error: any) {
-      toast.error("Failed to load profile");
-    } finally {
-      setLoading(false);
+  try {
+    const session = await getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
     }
-  };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    // CHANGED: Use backend API instead of supabase
+    const response = await studentProfileAPI.getProfile();
+    const data = response.profile;
 
-      const skillsArray = formData.skills
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s);
+    if (data) {
+      setProfile(data);
+      setFormData({
+        bio: data.bio || "",
+        university: data.university || "",
+        degree: data.degree || "",
+        graduation_year: data.graduation_year || new Date().getFullYear(),
+        location: data.location || "",
+        skills: data.skills?.join(", ") || "",
+        linkedin_url: data.linkedin_url || "",
+        github_url: data.github_url || "",
+        phone: data.phone || "",
+      });
+    }
+  } catch (error: any) {
+    toast.error("Failed to load profile");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const { error } = await supabase
-        .from("student_profiles")
-        .upsert({
-          user_id: user.id,
-          ...formData,
-          skills: skillsArray,
-        })
-        .eq("user_id", user.id);
+const handleSave = async () => {
+  setSaving(true);
+  try {
+    const skillsArray = formData.skills
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
 
-      if (error) throw error;
+    // CHANGED: Use backend API instead of supabase
+    const response = await studentProfileAPI.updateProfile({
+      bio: formData.bio,
+      university: formData.university,
+      degree: formData.degree,
+      graduation_year: formData.graduation_year,
+      location: formData.location,
+      skills: skillsArray,
+      linkedin_url: formData.linkedin_url,
+      github_url: formData.github_url,
+      phone: formData.phone,
+    });
+
+    if (response.profile) {
       toast.success("Profile saved successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save profile");
-    } finally {
-      setSaving(false);
     }
-  };
+  } catch (error: any) {
+    toast.error(error.message || "Failed to save profile");
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) {
     return (

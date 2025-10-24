@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Mail, Chrome, ArrowLeft } from "lucide-react";
+import { Mail, Chrome, ArrowLeft, UserCircle, Building2 } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -18,12 +18,113 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
   const [showOTP, setShowOTP] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [googleUserData, setGoogleUserData] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"student" | "company">("student");
   const [otp, setOtp] = useState("");
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
+
+  // Check for OAuth setup parameter (redirected from callback)
+  useEffect(() => {
+    const setupParam = searchParams.get('setup');
+    
+    const handleOAuthSetup = async () => {
+      if (setupParam === 'true') {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session?.user && !error) {
+            // User needs to complete setup, show role selection
+            setGoogleUserData({
+              user: session.user,
+              token: session.access_token,
+            });
+            setShowRoleSelection(true);
+          } else {
+            // No session found
+            toast.error('Session expired. Please sign in again.');
+            navigate('/auth');
+          }
+        } catch (error) {
+          console.error('OAuth setup error:', error);
+          toast.error('Something went wrong. Please try again.');
+        }
+      }
+    };
+
+    handleOAuthSetup();
+  }, [searchParams, navigate]);
+
+  // Check for OAuth setup parameter (redirected from callback)
+  useEffect(() => {
+    const setupParam = searchParams.get('setup');
+    
+    const handleOAuthSetup = async () => {
+      if (setupParam === 'true') {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session?.user && !error) {
+            // User needs to complete setup, show role selection
+            setGoogleUserData({
+              user: session.user,
+              token: session.access_token,
+            });
+            setShowRoleSelection(true);
+          } else {
+            // No session found
+            toast.error('Session expired. Please sign in again.');
+            navigate('/auth');
+          }
+        } catch (error) {
+          console.error('OAuth setup error:', error);
+          toast.error('Something went wrong. Please try again.');
+        }
+      }
+    };
+
+    handleOAuthSetup();
+  }, [searchParams, navigate]);
+
+  // Handle role selection after Google OAuth
+  const handleRoleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (!googleUserData?.user || !googleUserData?.token) {
+        throw new Error('Session expired. Please try again.');
+      }
+
+      // Create backend profile with selected role
+      await createBackendProfile(
+        googleUserData.user.id,
+        googleUserData.token,
+        {
+          email: googleUserData.user.email,
+          full_name: googleUserData.user.user_metadata?.full_name || 
+                     googleUserData.user.user_metadata?.name ||
+                     googleUserData.user.email?.split('@')[0],
+          role,
+        }
+      );
+
+      toast.success('Account setup complete!');
+      setShowRoleSelection(false);
+      setGoogleUserData(null);
+
+      // Navigate to home - the Index component will detect the session and show dashboard
+      window.location.href = '/';
+    } catch (error: any) {
+      console.error('Role submission error:', error);
+      toast.error(error.message || 'Failed to complete setup');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Create profile in backend
   const createBackendProfile = async (userId: string, token: string, userData: any) => {
@@ -53,6 +154,8 @@ const Auth = () => {
       throw error;
     }
   };
+
+
 
   // Google OAuth Sign In/Up
   const handleGoogleAuth = async () => {
@@ -137,7 +240,8 @@ const Auth = () => {
       setFullName("");
       setOtp("");
 
-      setTimeout(() => navigate("/"), 1000);
+      // Use window.location to force a full page reload and state refresh
+      window.location.href = '/';
     } catch (error: any) {
       console.error('Verification error:', error);
       toast.error(error.message || 'Failed to verify OTP');
@@ -179,7 +283,8 @@ const Auth = () => {
       setEmail("");
       setPassword("");
 
-      setTimeout(() => navigate("/"), 1000);
+      // Use window.location to force a full page reload and state refresh
+      window.location.href = '/';
     } catch (error: any) {
       console.error('Sign in error:', error);
       toast.error(error.message || 'Sign in failed');
@@ -195,6 +300,72 @@ const Auth = () => {
       handlePasswordSignIn(e);
     }
   };
+
+  // Role Selection Screen (for Google OAuth)
+  if (showRoleSelection) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
+        </div>
+
+        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
+          <div className="text-center mb-8">
+            <UserCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
+            <h2 className="text-2xl font-bold mb-2">Complete Your Profile</h2>
+            <p className="text-sm text-muted-foreground">
+              Tell us who you are to get started
+            </p>
+          </div>
+
+          <form onSubmit={handleRoleSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-base">I am a:</Label>
+              <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")}>
+                <div className="flex items-center space-x-3 p-4 rounded-lg border-2 border-border hover:border-primary transition-colors cursor-pointer">
+                  <RadioGroupItem value="student" id="student-role" disabled={loading} />
+                  <Label htmlFor="student-role" className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <UserCircle className="w-5 h-5 text-primary" />
+                      <div>
+                        <div className="font-semibold">Student</div>
+                        <div className="text-xs text-muted-foreground">
+                          Looking for internship opportunities
+                        </div>
+                      </div>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-4 rounded-lg border-2 border-border hover:border-primary transition-colors cursor-pointer">
+                  <RadioGroupItem value="company" id="company-role" disabled={loading} />
+                  <Label htmlFor="company-role" className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-primary" />
+                      <div>
+                        <div className="font-semibold">Company</div>
+                        <div className="text-xs text-muted-foreground">
+                          Hiring talented interns
+                        </div>
+                      </div>
+                    </div>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-gradient-primary hover:shadow-glow transition-all"
+              disabled={loading}
+            >
+              {loading ? "Setting up..." : "Continue"}
+            </Button>
+          </form>
+        </Card>
+      </div>
+    );
+  }
 
   // OTP Form
   if (showOTP) {

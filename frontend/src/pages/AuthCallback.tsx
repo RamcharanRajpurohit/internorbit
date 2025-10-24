@@ -24,36 +24,41 @@ const AuthCallback = () => {
           throw new Error('No session found. Please try again.');
         }
 
-        console.log('Session found, creating backend profile...');
+        console.log('Session found, checking for backend profile...');
 
-        // Create profile in backend
-        const response = await fetch(`${API_URL}/auth/initialize`, {
-          method: 'POST',
+        // Check if profile exists in backend
+        const profileCheckResponse = await fetch(`${API_URL}/auth/profile`, {
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            id: session.user.id,
-            email: session.user.email,
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            role: session.user.user_metadata?.role || 'student',
-          }),
         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          console.error('Backend error:', error);
-          throw new Error(error.error || 'Failed to create profile');
+        if (profileCheckResponse.status === 404) {
+          // Profile doesn't exist - redirect to auth for role selection
+          console.log('Profile not found, redirecting for role selection...');
+          toast.info('Please complete your profile setup');
+          
+          setTimeout(() => {
+            navigate('/auth?setup=true');
+          }, 500);
+          return;
         }
 
-        console.log('Profile created successfully');
-        toast.success('Authentication successful!');
+        if (!profileCheckResponse.ok) {
+          throw new Error('Failed to check profile status');
+        }
 
-        // Small delay before redirect
+        // Profile exists - user is already set up
+        const profileData = await profileCheckResponse.json();
+        console.log('Profile found:', profileData.profile);
+        
+        toast.success('Welcome back!');
+
+        // Redirect to home
         setTimeout(() => {
           navigate('/');
         }, 1000);
+
       } catch (err: any) {
         console.error('Callback error:', err);
         setError(err.message || 'Authentication failed');
@@ -78,7 +83,7 @@ const AuthCallback = () => {
           <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
           <h2 className="text-xl font-bold mb-2">Completing Authentication</h2>
           <p className="text-muted-foreground text-sm">
-            Please wait while we set up your account...
+            Please wait while we verify your account...
           </p>
         </Card>
       </div>

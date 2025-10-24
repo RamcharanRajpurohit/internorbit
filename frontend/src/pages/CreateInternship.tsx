@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Save } from "lucide-react";
+import { internshipAPI } from "@/lib/api";
+import { getSession } from "@/integrations/supabase/client";
+
 
 const CreateInternship = () => {
   const navigate = useNavigate();
@@ -37,99 +40,85 @@ const CreateInternship = () => {
     }
   }, [id]);
 
-  const loadInternship = async (internshipId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("internships")
-        .select("*")
-        .eq("id", internshipId)
-        .single();
+ const loadInternship = async (internshipId: string) => {
+  try {
+    // CHANGED: Use backend API instead of supabase
+    const response = await internshipAPI.getById(internshipId);
+    const data = response.internship;
 
-      if (error) throw error;
-      if (data) {
-        setFormData({
-          title: data.title || "",
-          description: data.description || "",
-          requirements: data.requirements || "",
-          responsibilities: data.responsibilities || "",
-          location: data.location || "",
-          is_remote: data.is_remote || false,
-          stipend_min: data.stipend_min?.toString() || "",
-          stipend_max: data.stipend_max?.toString() || "",
-          duration_months: data.duration_months?.toString() || "",
-          skills_required: data.skills_required?.join(", ") || "",
-          positions_available: data.positions_available?.toString() || "1",
-          application_deadline: data.application_deadline || "",
-          status: (data.status as "active") || "active",
-        });
-      }
-    } catch (error: any) {
-      toast.error("Failed to load internship");
-      navigate("/company/internships");
-    } finally {
-      setLoading(false);
+    if (data) {
+      setFormData({
+        title: data.title || "",
+        description: data.description || "",
+        requirements: data.requirements || "",
+        responsibilities: data.responsibilities || "",
+        location: data.location || "",
+        is_remote: data.is_remote || false,
+        stipend_min: data.stipend_min?.toString() || "",
+        stipend_max: data.stipend_max?.toString() || "",
+        duration_months: data.duration_months?.toString() || "",
+        skills_required: data.skills_required?.join(", ") || "",
+        positions_available: data.positions_available?.toString() || "1",
+        application_deadline: data.application_deadline || "",
+        status: (data.status as "active") || "active",
+      });
     }
-  };
+  } catch (error: any) {
+    toast.error("Failed to load internship");
+    navigate("/company/internships");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleSave = async () => {
-    if (!formData.title || !formData.description) {
-      toast.error("Please fill in all required fields");
-      return;
+const handleSave = async () => {
+  if (!formData.title || !formData.description) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
+
+  setSaving(true);
+  try {
+    const skillsArray = formData.skills_required
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+
+    const internshipData = {
+      title: formData.title,
+      description: formData.description,
+      requirements: formData.requirements,
+      responsibilities: formData.responsibilities,
+      location: formData.location,
+      is_remote: formData.is_remote,
+      stipend_min: formData.stipend_min ? parseInt(formData.stipend_min) : null,
+      stipend_max: formData.stipend_max ? parseInt(formData.stipend_max) : null,
+      duration_months: formData.duration_months
+        ? parseInt(formData.duration_months)
+        : null,
+      skills_required: skillsArray,
+      positions_available: parseInt(formData.positions_available),
+      application_deadline: formData.application_deadline || null,
+      status: formData.status,
+    };
+
+    if (id) {
+      // CHANGED: Use backend API instead of supabase
+      await internshipAPI.update(id, internshipData);
+      toast.success("Internship updated successfully!");
+    } else {
+      // CHANGED: Use backend API instead of supabase
+      await internshipAPI.create(internshipData);
+      toast.success("Internship created successfully!");
     }
 
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const skillsArray = formData.skills_required
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s);
-
-      const internshipData = {
-        company_id: user.id,
-        title: formData.title,
-        description: formData.description,
-        requirements: formData.requirements,
-        responsibilities: formData.responsibilities,
-        location: formData.location,
-        is_remote: formData.is_remote,
-        stipend_min: formData.stipend_min ? parseInt(formData.stipend_min) : null,
-        stipend_max: formData.stipend_max ? parseInt(formData.stipend_max) : null,
-        duration_months: formData.duration_months
-          ? parseInt(formData.duration_months)
-          : null,
-        skills_required: skillsArray,
-        positions_available: parseInt(formData.positions_available),
-        application_deadline: formData.application_deadline || null,
-        status: formData.status,
-      };
-
-      if (id) {
-        const { error } = await supabase
-          .from("internships")
-          .update(internshipData)
-          .eq("id", id);
-
-        if (error) throw error;
-        toast.success("Internship updated successfully!");
-      } else {
-        const { error } = await supabase
-          .from("internships")
-          .insert(internshipData);
-
-        if (error) throw error;
-        toast.success("Internship created successfully!");
-      }
-
-      navigate("/company/internships");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save internship");
-    } finally {
-      setSaving(false);
-    }
-  };
+    navigate("/company/internships");
+  } catch (error: any) {
+    toast.error(error.message || "Failed to save internship");
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) {
     return (

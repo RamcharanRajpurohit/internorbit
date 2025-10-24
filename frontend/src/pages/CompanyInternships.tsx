@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
+import { internshipAPI } from "@/lib/api";
+import { getSession } from "@/integrations/supabase/client";
+
 import {
   MapPin,
   DollarSign,
@@ -35,43 +38,38 @@ const CompanyInternships = () => {
     loadInternships();
   }, []);
 
-  const loadInternships = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("internships")
-        .select("*")
-        .eq("company_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInternships(data || []);
-    } catch (error: any) {
-      toast.error("Failed to load internships");
-    } finally {
-      setLoading(false);
+ const loadInternships = async () => {
+  try {
+    const session = await getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
     }
-  };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("internships")
-        .delete()
-        .eq("id", id);
+    // CHANGED: Use backend API instead of supabase
+    const response = await internshipAPI.getAll({
+      page: 1,
+      limit: 100,
+    });
 
-      if (error) throw error;
-      setInternships((prev) => prev.filter((i) => i.id !== id));
-      toast.success("Internship deleted successfully");
-    } catch (error: any) {
-      toast.error("Failed to delete internship");
-    }
-  };
+    setInternships(response.internships || []);
+  } catch (error: any) {
+    toast.error("Failed to load internships");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleDelete = async (id: string) => {
+  try {
+    // CHANGED: Use backend API instead of supabase
+    await internshipAPI.delete(id);
+    setInternships((prev) => prev.filter((i) => i._id !== id));
+    toast.success("Internship deleted successfully");
+  } catch (error: any) {
+    toast.error("Failed to delete internship");
+  }
+};
 
   if (loading) {
     return (
