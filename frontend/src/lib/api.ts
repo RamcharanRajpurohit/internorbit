@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const API_URL ='http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URI;
 
 // Get auth token from Supabase
 const getAuthToken = async () => {

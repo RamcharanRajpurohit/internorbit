@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { verifyToken } from './auth';
+import { verifyToken } from '../middleware/auth';
 import { Swipe } from '../models/swipe';
 import { SavedInternship } from '../models/saved';
+import { StudentProfile } from '../models/studnet';
 
 const router = Router();
 
@@ -14,6 +15,10 @@ interface AuthRequest extends Request {
 // Create swipe
 router.post('/swipes', verifyToken, async (req: AuthRequest, res: Response) => {
   const { internship_id, direction } = req.body;
+  const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
 
   if (!['left', 'right'].includes(direction)) {
     return res.status(400).json({ error: 'Invalid swipe direction' });
@@ -31,7 +36,7 @@ router.post('/swipes', verifyToken, async (req: AuthRequest, res: Response) => {
     // If right swipe, also save the job
     if (direction === 'right') {
       const saved = new SavedInternship({
-        student_id: req.user.id,
+        student_id: student._id,
         internship_id,
       });
       await saved.save().catch(() => {
@@ -51,11 +56,14 @@ router.post('/swipes', verifyToken, async (req: AuthRequest, res: Response) => {
 // Get student's swipes
 router.get('/swipes', verifyToken, async (req: AuthRequest, res: Response) => {
   const { direction, page = 1, limit = 20 } = req.query;
-
+  console.log(req.user.id);
   try {
     const skip = (Number(page) - 1) * Number(limit);
-
-    let query: any = { student_id: req.user.id };
+    const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+    let query: any = { student_id:student._id };
 
     if (direction) {
       query.direction = direction;
@@ -120,10 +128,14 @@ router.get('/swipes/stats/:internship_id', async (req: Request, res: Response) =
 // Save internship
 router.post('/saved-jobs', verifyToken, async (req: AuthRequest, res: Response) => {
   const { internship_id } = req.body;
+  const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
 
   try {
     const saved = new SavedInternship({
-      student_id: req.user.id,
+      student_id: student._id,
       internship_id,
     });
 
@@ -144,9 +156,12 @@ router.get('/saved-jobs', verifyToken, async (req: AuthRequest, res: Response) =
 
   try {
     const skip = (Number(page) - 1) * Number(limit);
-
-    const total = await SavedInternship.countDocuments({ student_id: req.user.id });
-    const saved = await SavedInternship.find({ student_id: req.user.id })
+    const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+    const total = await SavedInternship.countDocuments({ student_id:student._id });
+    const saved = await SavedInternship.find({ student_id: student._id })
       .populate({
         path: 'internship_id',
         populate: {
@@ -178,10 +193,14 @@ router.get('/saved-jobs', verifyToken, async (req: AuthRequest, res: Response) =
 // Check if internship is saved
 router.get('/saved-jobs/:internship_id', verifyToken, async (req: AuthRequest, res: Response) => {
   const { internship_id } = req.params;
+  const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
 
   try {
     const saved = await SavedInternship.findOne({
-      student_id: req.user.id,
+      student_id: student._id,
       internship_id,
     });
 
@@ -191,13 +210,17 @@ router.get('/saved-jobs/:internship_id', verifyToken, async (req: AuthRequest, r
   }
 });
 
-// Unsave internship
+
 router.delete('/saved-jobs/:internship_id', verifyToken, async (req: AuthRequest, res: Response) => {
   const { internship_id } = req.params;
+  const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
 
   try {
     await SavedInternship.findOneAndDelete({
-      student_id: req.user.id,
+      student_id:student._id,
       internship_id,
     });
 

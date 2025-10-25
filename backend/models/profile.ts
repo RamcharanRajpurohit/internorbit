@@ -1,29 +1,44 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 // TypeScript interface for the Profile document
 export interface IProfile extends Document {
+  user_id: string; // 👈 Supabase/Google UUID
   email: string;
   full_name: string;
   role: 'student' | 'company' | 'admin';
   avatar_url?: string;
   created_at: Date;
   updated_at: Date;
+  isStudent(): boolean;
+  isCompany(): boolean;
+  isAdmin(): boolean;
 }
 
-// Mongoose schema definition
-const ProfileSchema: Schema = new Schema<IProfile>(
+// Extend Model to define static methods
+interface IProfileModel extends Model<IProfile> {
+  findByRole(role: string): Promise<IProfile[]>;
+  findByEmail(email: string): Promise<IProfile | null>;
+  findByUserId(user_id: string): Promise<IProfile | null>;
+}
+
+// Schema definition
+const ProfileSchema = new Schema<IProfile>(
   {
+    user_id: {
+      type: String,
+      required: [true, 'User ID is required'],
+      unique: true,
+      index: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: [true, 'Email is required'],
       unique: true,
       trim: true,
       lowercase: true,
-      index: true,
       validate: {
-        validator: function (v: string) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-        },
+        validator: (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
         message: 'Please enter a valid email address',
       },
     },
@@ -33,7 +48,6 @@ const ProfileSchema: Schema = new Schema<IProfile>(
       trim: true,
       minlength: [2, 'Full name must be at least 2 characters'],
       maxlength: [100, 'Full name cannot exceed 100 characters'],
-      index: true,
     },
     role: {
       type: String,
@@ -43,7 +57,6 @@ const ProfileSchema: Schema = new Schema<IProfile>(
         message: '{VALUE} is not a valid role',
       },
       default: 'student',
-      index: true,
     },
     avatar_url: {
       type: String,
@@ -68,16 +81,16 @@ const ProfileSchema: Schema = new Schema<IProfile>(
   }
 );
 
-// Indexes for efficient queries
+// 🔍 Indexes
 ProfileSchema.index({ role: 1, created_at: -1 });
 
-// Pre-save middleware
+// 🧩 Middleware to update timestamps
 ProfileSchema.pre('save', function (next) {
   this.updated_at = new Date();
   next();
 });
 
-// Instance methods
+// 💪 Instance methods
 ProfileSchema.methods.isStudent = function (): boolean {
   return this.role === 'student';
 };
@@ -96,7 +109,7 @@ ProfileSchema.methods.toJSON = function () {
   return obj;
 };
 
-// Static methods
+// 🧠 Static methods
 ProfileSchema.statics.findByRole = function (role: string) {
   return this.find({ role }).sort({ created_at: -1 });
 };
@@ -105,5 +118,9 @@ ProfileSchema.statics.findByEmail = function (email: string) {
   return this.findOne({ email: email.toLowerCase() });
 };
 
-// Export the model
-export const Profile = mongoose.model<IProfile>('Profile', ProfileSchema);
+ProfileSchema.statics.findByUserId = function (user_id: string) {
+  return this.findOne({ user_id });
+};
+
+// 🚀 Export model
+export const Profile = mongoose.model<IProfile, IProfileModel>('Profile', ProfileSchema);

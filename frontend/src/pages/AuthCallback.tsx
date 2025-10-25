@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URI;
 
 const AuthCallback = () => {
   const navigate = useNavigate();

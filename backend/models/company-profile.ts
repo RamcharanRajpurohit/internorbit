@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 // TypeScript interface for the CompanyProfile document
 export interface ICompanyProfile extends Document {
-  user_id: Types.ObjectId;
+  user_id: string;
   company_name: string;
   description: string;
   website: string;
@@ -18,11 +18,11 @@ export interface ICompanyProfile extends Document {
 const CompanyProfileSchema: Schema = new Schema<ICompanyProfile>(
   {
     user_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: [true, 'User ID is required'],
       unique: true,
       index: true,
+      trim: true,
     },
     company_name: {
       type: String,
@@ -34,14 +34,14 @@ const CompanyProfileSchema: Schema = new Schema<ICompanyProfile>(
     },
     description: {
       type: String,
-      required: [true, 'Company description is required'],
+      
       trim: true,
       minlength: [50, 'Description must be at least 50 characters'],
       maxlength: [5000, 'Description cannot exceed 5000 characters'],
     },
     website: {
       type: String,
-      required: [true, 'Website URL is required'],
+     
       trim: true,
       lowercase: true,
       validate: {
@@ -53,7 +53,7 @@ const CompanyProfileSchema: Schema = new Schema<ICompanyProfile>(
     },
     industry: {
       type: String,
-      required: [true, 'Industry is required'],
+      
       trim: true,
       index: true,
     },
@@ -68,7 +68,7 @@ const CompanyProfileSchema: Schema = new Schema<ICompanyProfile>(
     },
     location: {
       type: String,
-      required: [true, 'Location is required'],
+     
       trim: true,
       index: true,
     },

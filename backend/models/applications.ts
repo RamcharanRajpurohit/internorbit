@@ -22,7 +22,7 @@ const ApplicationSchema: Schema = new Schema<IApplication>(
     },
     student_id: {
       type: Schema.Types.ObjectId,
-      ref: 'Student',
+      ref: 'StudentProfile',
       required: [true, 'Student ID is required'],
       index: true,
     },

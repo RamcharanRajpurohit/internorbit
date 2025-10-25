@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 // TypeScript interface for the StudentProfile document
 export interface IStudentProfile extends Document {
-  user_id: Types.ObjectId;
+  user_id: string;
   bio: string;
   university: string;
   degree: string;
@@ -20,71 +20,52 @@ export interface IStudentProfile extends Document {
 // Mongoose schema definition
 const StudentProfileSchema: Schema = new Schema<IStudentProfile>(
   {
-    user_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'Profile',
+   user_id: {
+      type: String,
       required: [true, 'User ID is required'],
       unique: true,
       index: true,
+      trim: true,
     },
     bio: {
       type: String,
-      required: [true, 'Bio is required'],
+      
       trim: true,
       minlength: [50, 'Bio must be at least 50 characters'],
       maxlength: [1000, 'Bio cannot exceed 1000 characters'],
     },
     university: {
       type: String,
-      required: [true, 'University is required'],
+      
       trim: true,
       index: true,
     },
     degree: {
       type: String,
-      required: [true, 'Degree is required'],
+      
       trim: true,
       index: true,
     },
     graduation_year: {
       type: Number,
-      required: [true, 'Graduation year is required'],
-      min: [2020, 'Graduation year must be 2020 or later'],
-      max: [2035, 'Graduation year cannot exceed 2035'],
       index: true,
     },
     location: {
       type: String,
-      required: [true, 'Location is required'],
       trim: true,
       index: true,
     },
     skills: {
       type: [String],
-      required: [true, 'Skills are required'],
-      validate: {
-        validator: function (v: string[]) {
-          return v && v.length > 0;
-        },
-        message: 'At least one skill must be provided',
-      },
       index: true,
     },
     resume_url: {
       type: String,
-      required: [true, 'Resume URL is required'],
       trim: true,
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
       trim: true,
-      validate: {
-        validator: function (v: string) {
-          return /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/.test(v);
-        },
-        message: 'Please enter a valid phone number',
-      },
     },
     linkedin_url: {
       type: String,

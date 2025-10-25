@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { verifyToken } from './auth';
+import { verifyToken } from '../middleware/auth';
 import { StudentProfile } from '../models/studnet';
 
 const router = Router();

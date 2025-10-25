@@ -7,7 +7,7 @@ import Landing from "./Landing";
 import Auth from "./Auth";
 import AuthCallback from "./AuthCallback";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URI;
 
 const Index = () => {
   const navigate = useNavigate();

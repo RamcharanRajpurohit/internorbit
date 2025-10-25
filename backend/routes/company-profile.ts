@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { verifyToken } from './auth';
+import { verifyToken } from '../middleware/auth';
 import { CompanyProfile } from '../models/company-profile';
 import { Internship } from '../models/internships';
 
