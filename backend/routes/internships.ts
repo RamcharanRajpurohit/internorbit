@@ -13,7 +13,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   
   try {
     const skip = (Number(page) - 1) * Number(limit);
-    const query: any = {};
+    const query: any = { };
 
     // Apply filters
     if (search) {
@@ -41,19 +41,20 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       .populate({
         path: 'company_id',
         select: 'email full_name',
-        model: Profile
+        model: CompanyProfile
       })
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(Number(limit));
+      console.log("hers is the intenships for ypu:",internships);
 
     // Populate company profiles
     const populatedInternships = await Promise.all(
       internships.map(async (internship) => {
         const companyProfile = await CompanyProfile.findOne({ 
-          user_id: internship.company_id 
+          _id: internship.company_id 
         });
-        
+        console.log("company profile:",companyProfile);
         return {
           ...internship.toObject(),
           company: {
@@ -141,6 +142,7 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response) => {
           if (!company) {
             return res.status(404).json({ error: 'Comapany profile not found' });
           }
+    console.log("comanay id", company._id);
     const profile = await Profile.findOne({user_id:req.user.id});
     
     if (!profile || profile.role !== 'company') {

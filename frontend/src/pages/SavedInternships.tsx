@@ -35,6 +35,9 @@ const SavedInternships = () => {
         page,
         limit: 10,
       });
+      
+      console.log("Backend response:", response);
+      
       setSaved(response.saved || []);
       setTotal(response.pagination?.total || 0);
     } catch (error: any) {
@@ -48,7 +51,8 @@ const SavedInternships = () => {
   const handleUnsave = async (internshipId: string) => {
     try {
       await interactionAPI.unsaveJob(internshipId);
-      setSaved(saved.filter(s => s.internship.id !== internshipId));
+      // Fixed: Check against internship_id instead of internship.id
+      setSaved(saved.filter(s => s.internship_id?._id !== internshipId));
       toast.success("Removed from saved");
     } catch (error: any) {
       toast.error("Failed to unsave internship");
@@ -103,32 +107,41 @@ const SavedInternships = () => {
           ) : (
             <div className="space-y-4">
               {saved.map((item) => {
-                const internship = item.internship;
-                const company = internship.company;
-                const companyProfile = company?.company_profiles?.[0];
+                // Fixed: Access internship_id instead of internship
+                const internship = item.internship_id;
+                
+                // Handle missing internship data
+                if (!internship) {
+                  return null;
+                }
+
+                // Fixed: Access company_id and handle the nested structure
+                const company = internship.company_id;
+                const companyName = company?.company_name || company?.name || "Company";
+                const companyLogo = company?.logo_url;
 
                 return (
-                  <Card key={internship.id} className="hover:shadow-elevated transition-shadow">
+                  <Card key={internship._id} className="hover:shadow-elevated transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            {companyProfile?.logo_url ? (
+                            {companyLogo ? (
                               <img
-                                src={companyProfile.logo_url}
-                                alt={companyProfile.company_name}
+                                src={companyLogo}
+                                alt={companyName}
                                 className="w-10 h-10 rounded-full object-cover"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-gradient-secondary flex items-center justify-center">
                                 <span className="text-white text-sm font-bold">
-                                  {companyProfile?.company_name?.[0]}
+                                  {companyName[0]}
                                 </span>
                               </div>
                             )}
                             <div>
                               <p className="text-sm text-muted-foreground">
-                                {companyProfile?.company_name || "Company"}
+                                {companyName}
                               </p>
                             </div>
                           </div>
@@ -141,7 +154,7 @@ const SavedInternships = () => {
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => handleUnsave(internship.id)}
+                            onClick={() => handleUnsave(internship._id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -182,8 +195,8 @@ const SavedInternships = () => {
                         <div className="mb-4">
                           <p className="text-sm font-semibold mb-2">Required Skills:</p>
                           <div className="flex flex-wrap gap-2">
-                            {internship.skills_required.map((skill: string) => (
-                              <Badge key={skill} variant="outline">
+                            {internship.skills_required.map((skill: string, index: number) => (
+                              <Badge key={`${skill}-${index}`} variant="outline">
                                 {skill}
                               </Badge>
                             ))}
@@ -193,14 +206,14 @@ const SavedInternships = () => {
 
                       <div className="flex gap-2 mt-4">
                         <Button
-                          onClick={() => navigate(`/internship/${internship.id}`)}
+                          onClick={() => navigate(`/internship/${internship._id}`)}
                           variant="outline"
                           className="flex-1"
                         >
                           View Details
                         </Button>
                         <Button
-                          onClick={() => handleApply(internship.id)}
+                          onClick={() => handleApply(internship._id)}
                           className="flex-1 bg-gradient-primary"
                         >
                           Apply Now

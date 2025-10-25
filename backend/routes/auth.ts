@@ -50,7 +50,7 @@ router.post('/initialize', verifyToken, async (req: AuthRequest, res: Response) 
     try {
       const effectiveRole = role || profile.role;
 
-      if (effectiveRole === 'student') {
+      if (effectiveRole == 'student') {
         const existingStudent = await StudentProfile.findOne({ user_id: id });
         if (!existingStudent) {
           // Student schema allows minimal creation with only user_id
@@ -58,7 +58,7 @@ router.post('/initialize', verifyToken, async (req: AuthRequest, res: Response) 
           await studentProfile.save();
           console.log(`Created StudentProfile for user ${id}`);
         }
-      } else if (effectiveRole === 'company') {
+      } else if (effectiveRole == 'company') {
         const existingCompany = await CompanyProfile.findOne({ user_id: id });
         if (!existingCompany) {
           // Company schema requires company_name and company_size. Use sensible defaults.

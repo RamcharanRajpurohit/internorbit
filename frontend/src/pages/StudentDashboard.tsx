@@ -64,7 +64,7 @@ const StudentDashboard = () => {
 
     try {
       // Record swipe via backend
-      await interactionAPI.createSwipe(currentInternship.id, direction);
+      await interactionAPI.createSwipe(currentInternship._id, direction);
 
       toast.success(
         direction === "right" ? "Internship saved!" : "Internship skipped"
