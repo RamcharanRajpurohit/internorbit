@@ -13,7 +13,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   
   try {
     const skip = (Number(page) - 1) * Number(limit);
-    const query: any = { status: 'active' };
+    const query: any = {};
 
     // Apply filters
     if (search) {
