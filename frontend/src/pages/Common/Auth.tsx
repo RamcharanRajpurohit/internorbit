@@ -446,7 +446,7 @@ const Auth = () => {
       <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-            InternMatch
+            InternOrbit
           </h1>
           <p className="text-muted-foreground">
             {isSignUp ? "Start your journey today" : "Welcome back!"}

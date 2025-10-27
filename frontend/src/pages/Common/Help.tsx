@@ -31,8 +31,8 @@ const Help = () => {
           a: "After signing up, navigate to your Profile page from the navigation menu. Fill in all required information including your bio, skills, education, and upload your resume.",
         },
         {
-          q: "Is InternMatch free to use?",
-          a: "Yes! InternMatch is completely free for both students and companies. We believe in making internship opportunities accessible to everyone.",
+          q: "Is InternOrbit free to use?",
+          a: "Yes! InternOrbit is completely free for both students and companies. We believe in making internship opportunities accessible to everyone.",
         },
       ],
     },
@@ -162,7 +162,7 @@ const Help = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email Support</h3>
-                    <p className="text-sm text-muted-foreground">support@internmatch.com</p>
+                    <p className="text-sm text-muted-foreground">support@InternOrbit.com</p>
                   </div>
                 </div>
               </CardContent>

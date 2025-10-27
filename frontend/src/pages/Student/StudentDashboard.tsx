@@ -11,13 +11,13 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [internships, setInternships] = useState<any[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     checkAuth();
     loadInternships();
   }, []);
 
+  // Check if user is logged in
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -26,27 +26,21 @@ const StudentDashboard = () => {
     }
   };
 
+  // Load all internships and filter already swiped ones
   const loadInternships = async () => {
     try {
       setLoading(true);
-      
-      // Get all active internships from backend
-      const response = await internshipAPI.getAll({
-        page: 1,
-        limit: 50,
-      });
+
+      // Get all active internships
+      const response = await internshipAPI.getAll({ page: 1, limit: 50 });
 
       // Get user's swiped internships
-      const swipesResponse = await interactionAPI.getSwipes({
-        page: 1,
-        limit: 100,
-      });
-
+      const swipesResponse = await interactionAPI.getSwipes({ page: 1, limit: 100 });
       const swipedIds = swipesResponse.swipes?.map((s: any) => s.internship_id) || [];
 
-      // Filter out already swiped internships
+      // Filter out internships already swiped
       const filteredInternships = response.internships.filter(
-        (internship: any) => !swipedIds.includes(internship.id)
+        (internship: any) => !swipedIds.includes(internship._id)
       );
 
       setInternships(filteredInternships);
@@ -58,24 +52,25 @@ const StudentDashboard = () => {
     }
   };
 
+  // Handle swipe
   const handleSwipe = async (direction: "left" | "right") => {
-    const currentInternship = internships[currentIndex];
+    const currentInternship = internships[0];
     if (!currentInternship) return;
 
     try {
-      // Record swipe via backend
       await interactionAPI.createSwipe(currentInternship._id, direction);
 
-      toast.success(
-        direction === "right" ? "Internship saved!" : "Internship skipped"
-      );
+      toast.success(direction === "right" ? "Internship saved!" : "Internship skipped");
 
-      setCurrentIndex((prev) => prev + 1);
+      // Remove the internship from the list immediately
+      setInternships((prev) => prev.slice(1));
     } catch (error: any) {
       console.error("Error processing swipe:", error);
       toast.error(error.message || "Failed to process swipe");
     }
   };
+
+  const currentInternship = internships[0];
 
   if (loading) {
     return (
@@ -84,8 +79,6 @@ const StudentDashboard = () => {
       </div>
     );
   }
-
-  const currentInternship = internships[currentIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
@@ -97,17 +90,12 @@ const StudentDashboard = () => {
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               Discover Internships
             </h1>
-            <p className="text-muted-foreground">
-              Swipe right to save, left to skip
-            </p>
+            <p className="text-muted-foreground">Swipe right to save, left to skip</p>
           </div>
 
           <div className="relative h-[600px] flex items-center justify-center">
             {currentInternship ? (
-              <SwipeCard
-                internship={currentInternship}
-                onSwipe={handleSwipe}
-              />
+              <SwipeCard internship={currentInternship} onSwipe={handleSwipe} />
             ) : (
               <div className="text-center animate-scale-in">
                 <div className="text-6xl mb-4">🎉</div>
@@ -126,7 +114,7 @@ const StudentDashboard = () => {
           </div>
 
           <div className="text-center text-sm text-muted-foreground mt-4">
-            {internships.length - currentIndex} internships remaining
+            {internships.length} internship{internships.length !== 1 ? "s" : ""} remaining
           </div>
         </div>
       </main>

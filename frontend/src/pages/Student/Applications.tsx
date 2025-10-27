@@ -25,9 +25,7 @@ const Applications = () => {
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-    }
+    if (!session) navigate("/auth");
   };
 
   const loadApplications = async () => {
@@ -51,7 +49,7 @@ const Applications = () => {
   const handleWithdraw = async (applicationId: string) => {
     try {
       await applicationAPI.withdraw(applicationId);
-      setApplications(applications.filter(a => a.id !== applicationId));
+      setApplications(applications.filter(a => a._id !== applicationId));
       toast.success("Application withdrawn");
     } catch (error: any) {
       toast.error("Failed to withdraw application");
@@ -92,10 +90,7 @@ const Applications = () => {
             </p>
           </div>
 
-          <Tabs value={status} onValueChange={(value) => {
-            setStatus(value);
-            setPage(1);
-          }} className="mb-6">
+          <Tabs value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} className="mb-6">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -113,42 +108,38 @@ const Applications = () => {
               <p className="text-muted-foreground mb-6">
                 Start swiping through internships and apply to positions you're interested in
               </p>
-              <Button
-                onClick={() => navigate("/")}
-                className="bg-gradient-primary"
-              >
+              <Button onClick={() => navigate("/")} className="bg-gradient-primary">
                 Discover Internships
               </Button>
             </Card>
           ) : (
             <div className="space-y-4">
               {applications.map((app) => {
-                const internship = app.internship;
-                const company = internship.company;
-                const companyProfile = company?.company_profiles?.[0];
+                const internship = app.internship_id;
+                const company = internship.company_id;
 
                 return (
-                  <Card key={app.id} className="hover:shadow-elevated transition-shadow">
+                  <Card key={app._id} className="hover:shadow-elevated transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            {companyProfile?.logo_url ? (
+                            {company?.logo_url ? (
                               <img
-                                src={companyProfile.logo_url}
-                                alt={companyProfile.company_name}
+                                src={company.logo_url}
+                                alt={company.company_name}
                                 className="w-10 h-10 rounded-full object-cover"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-gradient-secondary flex items-center justify-center">
                                 <span className="text-white text-sm font-bold">
-                                  {companyProfile?.company_name?.[0]}
+                                  {company?.company_name?.[0]}
                                 </span>
                               </div>
                             )}
                             <div>
                               <p className="text-sm text-muted-foreground">
-                                {companyProfile?.company_name}
+                                {company?.company_name}
                               </p>
                             </div>
                           </div>
@@ -192,7 +183,7 @@ const Applications = () => {
 
                       <div className="flex gap-2 mt-4">
                         <Button
-                          onClick={() => navigate(`/internship/${internship.id}`)}
+                          onClick={() => navigate(`/internship/${internship._id}`)}
                           variant="outline"
                           className="flex-1"
                         >
@@ -200,7 +191,7 @@ const Applications = () => {
                         </Button>
                         {app.status === "pending" && (
                           <Button
-                            onClick={() => handleWithdraw(app.id)}
+                            onClick={() => handleWithdraw(app._id)}
                             variant="outline"
                             className="flex-1"
                           >

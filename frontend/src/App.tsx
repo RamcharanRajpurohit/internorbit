@@ -6,26 +6,26 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Existing Pages
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import StudentProfile from "./pages/StudentProfile";
-import SavedInternships from "./pages/SavedInternships";
-import Applications from "./pages/Applications";
-import CompanyProfile from "./pages/CompanyProfile";
-import CompanyInternships from "./pages/CompanyInternships";
-import CreateInternship from "./pages/CreateInternship";
-import CompanyApplicants from "./pages/CompanyApplicants";
+import Index from "./pages/Common/Index";
+import NotFound from "./pages/Common/NotFound";
+import StudentProfile from "./pages/Student/Profile/StudentProfile";
+import SavedInternships from "./pages/Student/SavedInternships";
+import Applications from "./pages/Student/Applications";
+import CompanyProfile from "./pages/Company/CompanyProfile";
+import CompanyInternships from "./pages/Company/CompanyInternships";
+import CreateInternship from "./pages/Company/CreateInternship";
+import CompanyApplicants from "./pages/Company/CompanyApplicants";
 
 // NEW PAGES
-import InternshipDetail from "./pages/InternshipDetail";
-import ApplyInternship from "./pages/ApplyInternship";
-import Search from "./pages/Search";
-import Settings from "./pages/Settings";
-import Notifications from "./pages/Notifications";
-import Help from "./pages/Help";
-import Contact from "./pages/Contact";
-import Onboarding from "./pages/Onboarding";
-import CompanyPublicProfile from "./pages/CompanyPublicProfile";
+import InternshipDetail from "./pages/Student/InternshipDetail";
+import ApplyInternship from "./pages/Student/ApplyInternship";
+import Search from "./pages/Common/Search";
+import Settings from "./pages/Common/Settings";
+import Notifications from "./pages/Common/Notifications";
+import Help from "./pages/Common/Help";
+import Contact from "./pages/Common/Contact";
+import Onboarding from "./pages/Common/Onboarding";
+import CompanyPublicProfile from "./pages/Company/CompanyPublicProfile";
 
 const queryClient = new QueryClient();
 

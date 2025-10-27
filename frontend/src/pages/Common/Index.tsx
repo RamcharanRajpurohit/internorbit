@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import StudentDashboard from "./StudentDashboard";
-import CompanyDashboard from "./CompanyDashboard";
+import StudentDashboard from "../Student/StudentDashboard";
+import CompanyDashboard from "../Company/CompanyDashboard";
 import Landing from "./Landing";
 import Auth from "./Auth";
 import AuthCallback from "./AuthCallback";

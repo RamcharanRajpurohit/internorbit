@@ -16,9 +16,9 @@ interface AuthRequest extends Request {
 router.get('/student', verifyToken, async (req: AuthRequest, res: Response) => {
   const { status, page = 1, limit = 10 } = req.query;
   const student = await StudentProfile.findOne({ user_id: req.user.id });
-      if (!student) {
-        return res.status(404).json({ error: 'Student profile not found' });
-      }
+  if (!student) {
+    return res.status(404).json({ error: 'Student profile not found' });
+  }
 
   try {
     const skip = (Number(page) - 1) * Number(limit);
@@ -32,18 +32,15 @@ router.get('/student', verifyToken, async (req: AuthRequest, res: Response) => {
     const total = await Application.countDocuments(query);
     const applications = await Application.find(query)
       .populate({
-        path: 'internship_id',
-        select: 'id title description company_id location stipend_min stipend_max',
+        path: "internship_id",
+        select: "title description company_id",
         populate: {
-          path: 'company_id',
-          select: 'email full_name',
-          populate: {
-            path: 'company_profiles',
-            model: 'CompanyProfile',
-            select: 'company_name logo_url',
-          },
+          path: "company_id",
+          model: "CompanyProfile", // important
+          select: "company_name logo_url website industry",
         },
       })
+      .populate("student_id", "full_name email")
       .sort({ applied_at: -1 })
       .skip(skip)
       .limit(Number(limit));
@@ -65,9 +62,9 @@ router.get('/student', verifyToken, async (req: AuthRequest, res: Response) => {
 router.get('/company', verifyToken, async (req: AuthRequest, res: Response) => {
   const { status, page = 1, limit = 10 } = req.query
   const company = await CompanyProfile.findOne({ user_id: req.user.id });
-      if (!company) {
-        return res.status(404).json({ error: 'Comapany profile not found' });
-      }
+  if (!company) {
+    return res.status(404).json({ error: 'Comapany profile not found' });
+  }
 
   try {
     const skip = (Number(page) - 1) * Number(limit);
@@ -77,9 +74,9 @@ router.get('/company', verifyToken, async (req: AuthRequest, res: Response) => {
     const internshipIds = internships.map(i => i._id);
 
     if (internshipIds.length === 0) {
-      return res.json({ 
-        applications: [], 
-        pagination: { page: 1, limit: 10, total: 0 } 
+      return res.json({
+        applications: [],
+        pagination: { page: 1, limit: 10, total: 0 }
       });
     }
 
@@ -124,16 +121,16 @@ router.get('/company', verifyToken, async (req: AuthRequest, res: Response) => {
 // Create application
 router.post('/', verifyToken, async (req: AuthRequest, res: Response) => {
   const { internship_id, cover_letter, resume_url } = req.body;
-  
+
 
   const student = await StudentProfile.findOne({ user_id: req.user.id });
-      if (!student) {
-        return res.status(404).json({ error: 'Student profile not found' });
-      }
+  if (!student) {
+    return res.status(404).json({ error: 'Student profile not found' });
+  }
 
   try {
     // Verify user is a student
-    const profile = await Profile.findById({user_id:req.user.id});
+    const profile = await Profile.findOne({ user_id: req.user.id });
 
     if (profile?.role !== 'student') {
       return res.status(403).json({ error: 'Only students can apply' });
@@ -152,7 +149,7 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response) => {
     // Create application
     const application = new Application({
       internship_id,
-      student_id: req.user.id,
+      student_id: student._id,
       cover_letter,
       resume_url,
       status: 'pending',
@@ -176,9 +173,9 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response) => {
 // Update application status (Company only)
 router.patch('/:id/status', verifyToken, async (req: AuthRequest, res: Response) => {
   const company = await CompanyProfile.findOne({ user_id: req.user.id });
-      if (!company ) {
-        return res.status(404).json({ error: 'Company  profile not found' });
-      }
+  if (!company) {
+    return res.status(404).json({ error: 'Company  profile not found' });
+  }
   const { id } = req.params;
   const { status } = req.body;
 
@@ -223,9 +220,9 @@ router.patch('/:id/status', verifyToken, async (req: AuthRequest, res: Response)
 router.delete('/:id', verifyToken, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const student = await StudentProfile.findOne({ user_id: req.user.id });
-      if (!student) {
-        return res.status(404).json({ error: 'Student profile not found' });
-      }
+  if (!student) {
+    return res.status(404).json({ error: 'Student profile not found' });
+  }
   try {
     const application = await Application.findById(id);
 
@@ -278,7 +275,7 @@ router.get('/:id', verifyToken, async (req: AuthRequest, res: Response) => {
     // Verify access: either student or company of internship
     const internship = await Internship.findById(application.internship_id);
 
-    
+
     //to do
     // const isStudent = application.student_id.toString() === req.user.id;
     // const isCompany = internship?.company_id.toString() === req.user.id;

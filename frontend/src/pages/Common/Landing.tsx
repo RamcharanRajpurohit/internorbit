@@ -28,7 +28,7 @@ const Landing = () => {
               <Briefcase className="w-6 h-6 text-primary-foreground" />
             </div>
             <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              InternMatch
+              InternOrbit
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -116,7 +116,7 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Why Choose <span className="bg-gradient-primary bg-clip-text text-transparent">InternMatch</span>?
+            Why Choose <span className="bg-gradient-primary bg-clip-text text-transparent">InternOrbit</span>?
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Everything you need to find and secure your perfect internship
@@ -341,7 +341,7 @@ const Landing = () => {
                 <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
                   <Briefcase className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold">InternMatch</span>
+                <span className="text-xl font-bold">InternOrbit</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Connecting talented students with amazing opportunities.
@@ -377,7 +377,7 @@ const Landing = () => {
           </div>
 
           <div className="pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            <p>&copy; 2025 InternMatch. All rights reserved.</p>
+            <p>&copy; 2025 InternOrbit. All rights reserved.</p>
           </div>
         </div>
       </footer>

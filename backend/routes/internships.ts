@@ -80,7 +80,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get single internship
+// Get single internship // to do  do not allow ended interships 
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
@@ -89,10 +89,10 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       .populate({
         path: 'company_id',
         select: 'email full_name',
-        model: Profile
+        model: CompanyProfile
       });
 
-    if (!internship || internship.status !== 'active') {
+    if (!internship) {
       return res.status(404).json({ error: 'Internship not found' });
     }
 

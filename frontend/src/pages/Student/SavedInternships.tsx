@@ -58,10 +58,11 @@ const SavedInternships = () => {
       toast.error("Failed to unsave internship");
     }
   };
+  
 
   const handleApply = async (internshipId: string) => {
     try {
-      navigate("/applications/new", { state: { internshipId } });
+       navigate(`/apply/${internshipId}`);
     } catch (error: any) {
       toast.error("Failed to navigate to application");
     }
