@@ -1,5 +1,5 @@
 // frontend/src/pages/InternshipDetail.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { internshipAPI, interactionAPI } from "@/lib/api";
 import { getSession } from "@/integrations/supabase/client";
@@ -20,7 +20,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
-
 
 const InternshipDetail = () => {
   const navigate = useNavigate();
@@ -96,6 +95,13 @@ const InternshipDetail = () => {
     navigate(`/apply/${id}`);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center ">
+        <Loader/>
+      </div>
+    );
+  }
 
   if (!internship) {
     return (
@@ -111,21 +117,11 @@ const InternshipDetail = () => {
   const company = internship.company_id;
   const companyProfile = company;
 
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
-      {
-        loading ? (
-          <div className="min-h-screen flex items-center justify-center ">
-            <Loader />
-          </div>
-        ) : null
-      }
+      <Navigation role={userRole} />
 
-      <main onClick={() => isMenuOpen ? setIsMenuOpen(false) : null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Button
             variant="ghost"
@@ -233,10 +229,10 @@ const InternshipDetail = () => {
                     <span className="text-2xl font-bold">
                       {internship.application_deadline
                         ? Math.ceil(
-                          (new Date(internship.application_deadline).getTime() -
-                            new Date().getTime()) /
-                          (1000 * 60 * 60 * 24)
-                        )
+                            (new Date(internship.application_deadline).getTime() -
+                              new Date().getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          )
                         : "N/A"}
                     </span>
                   </div>

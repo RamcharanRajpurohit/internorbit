@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { interactionAPI, applicationAPI } from "@/lib/api";
@@ -69,23 +69,19 @@ const SavedInternships = () => {
     }
   };
 
-  
-
- const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader/>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
-      {
-        loading ? (
-          <div className="min-h-screen flex items-center justify-center ">
-            <Loader />
-          </div>
-        ) : null
-      }
+      <Navigation role="student" />
 
-      <main onClick={()=>isMenuOpen?setIsMenuOpen(false):null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">

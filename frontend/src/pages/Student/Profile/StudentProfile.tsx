@@ -14,9 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader } from "@/components/ui/Loader";
 import Navigation from "@/components/Navigation";
-import {
-  Save, Upload, Edit, X, Plus, Trash2,
-  User, GraduationCap, Briefcase, FileText,
+import { 
+  Save, Upload, Edit, X, Plus, Trash2, 
+  User, GraduationCap, Briefcase, FileText, 
   Linkedin, Github, Phone, MapPin, Calendar,
   Link as LinkIcon
 } from "lucide-react";
@@ -28,7 +28,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import React from "react";
 
 interface Resume {
   id: string;
@@ -64,7 +63,7 @@ const StudentProfile = () => {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-
+  
   // Basic Info
   const [formData, setFormData] = useState({
     bio: "",
@@ -112,8 +111,8 @@ const StudentProfile = () => {
       }
 
       const response = await studentProfileAPI.getProfile();
-      console.log("Student", response);
-
+      console.log("Student",response);
+      
       const data = response.profile;
 
       if (data) {
@@ -239,21 +238,19 @@ const StudentProfile = () => {
     toast.success("Experience deleted");
   };
 
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
-      {
-        loading ? (
-          <div className="min-h-screen flex items-center justify-center ">
-            <Loader />
-          </div>
-        ) : null
-      }
+      <Navigation role="student" />
 
-      <main onClick={()=>isMenuOpen?setIsMenuOpen(false):null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -267,7 +264,7 @@ const StudentProfile = () => {
               <div>
                 <div className=" bg-gradient-primary bg-clip-text text-transparent">
                   <h1 className="text-3xl font-bold">
-                    {profile?.user?.full_name || "Profile"}
+                  {profile?.user?.full_name || "Profile"}
                   </h1>
                   <span className="text-lg bg-gradient-primary bg-clip-text text-transparent">
                     {profile?.user?.email}

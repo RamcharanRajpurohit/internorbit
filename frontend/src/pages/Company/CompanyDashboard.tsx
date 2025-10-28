@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,57 +24,54 @@ const CompanyDashboard = () => {
   }, []);
 
   const checkAuth = async () => {
-    const session = await getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-  };
+  const session = await getSession();
+  if (!session) {
+    navigate("/auth");
+    return;
+  }
+};
 
 
   const loadStats = async () => {
-    try {
-      // CHANGED: Use backend API instead of supabase
-      const response = await internshipAPI.getAll({
-        page: 1,
-        limit: 1000, // Get all internships
-      });
+  try {
+    // CHANGED: Use backend API instead of supabase
+    const response = await internshipAPI.getAll({
+      page: 1,
+      limit: 1000, // Get all internships
+    });
 
-      const internships = response.internships || [];
-      const totalInternships = internships.length;
-      const totalApplications = internships.reduce(
-        (sum, i) => sum + (i.applications_count || 0),
-        0
-      );
-      const totalViews = internships.reduce(
-        (sum, i) => sum + (i.views_count || 0),
-        0
-      );
+    const internships = response.internships || [];
+    const totalInternships = internships.length;
+    const totalApplications = internships.reduce(
+      (sum, i) => sum + (i.applications_count || 0),
+      0
+    );
+    const totalViews = internships.reduce(
+      (sum, i) => sum + (i.views_count || 0),
+      0
+    );
 
-      setStats({ totalInternships, totalApplications, totalViews });
-    } catch (error: any) {
-      toast.error("Failed to load stats");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setStats({ totalInternships, totalApplications, totalViews });
+  } catch (error: any) {
+    toast.error("Failed to load stats");
+  } finally {
+    setLoading(false);
+  }
+};
 
-
-const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+        <Loader/>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
-      {
-        loading ? (
-          <div className="min-h-screen flex items-center justify-center ">
-            <Loader />
-          </div>
-        ) : null
-      }
+      <Navigation role="company" />
 
-      <main onClick={()=>isMenuOpen?setIsMenuOpen(false):null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8 animate-slide-up">
             <div>
