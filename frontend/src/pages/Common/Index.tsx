@@ -6,11 +6,14 @@ import CompanyDashboard from "../Company/CompanyDashboard";
 import Landing from "./Landing";
 import Auth from "./Auth";
 import AuthCallback from "./AuthCallback";
+import { Loader } from "@/components/ui/Loader";
+
 const API_URL = import.meta.env.VITE_API_URI;
 
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
 
@@ -48,7 +51,7 @@ const Index = () => {
         setUser(null);
         setProfile(null);
       } finally {
-        
+        setLoading(false);
       }
     };
 
@@ -93,7 +96,13 @@ const Index = () => {
   }, [navigate]);
 
   // Loading state
- 
+  if (loading) {
+    return (
+     <div className="min-h-screen flex items-center justify-center ">
+        <Loader/>
+      </div>
+    );
+  }
 
   // Special routes (always accessible)
   if (location.pathname === "/auth/callback") {

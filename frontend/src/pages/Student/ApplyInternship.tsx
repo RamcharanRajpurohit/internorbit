@@ -67,7 +67,7 @@ const ApplyInternship = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
       </div>
     );
