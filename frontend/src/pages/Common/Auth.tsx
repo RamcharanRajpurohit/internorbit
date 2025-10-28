@@ -438,147 +438,160 @@ const Auth = () => {
 
   // Main Auth Form
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-72 h-72 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96  rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
-      </div>
+    <div className="min-h-screen flex flex-col p-4 relative overflow-hidden">
+      {/* Back Button outside card */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate("/")}
+        className="absolute top-4 left-4 z-20"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
 
-      <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold  bg-clip-text  mb-2">
-            InternOrbit
-          </h1>
-          <p className="text-muted-foreground">
-            {isSignUp ? "Start your journey today" : "Welcome back!"}
-          </p>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-20 w-72 h-72 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96  rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
         </div>
 
-        {/* Google OAuth Button */}
-        <Button
-          onClick={handleGoogleAuth}
-          disabled={loading}
-          variant="outline"
-          className="w-full mb-4 border-2"
-        >
-          <Chrome className="w-4 h-4 mr-2" />
-          Continue with Google
-        </Button>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border"></div>
+        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+              InternOrbit
+            </h1>
+            <p className="text-muted-foreground">
+              {isSignUp ? "Start your journey today" : "Welcome back!"}
+            </p>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or</span>
+
+          {/* Google OAuth Button */}
+          <Button
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            variant="outline"
+            className="w-full mb-4 border-2"
+          >
+            <Chrome className="w-4 h-4 mr-2" />
+            Continue with Google
+          </Button>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
           </div>
-        </div>
 
-        <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(v) => setIsSignUp(v === "signup")} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-          </TabsList>
+          <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(v) => setIsSignUp(v === "signup")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="signup">
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-                <div className="space-y-3">
-                <Label>I am a:</Label>
-                <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")} className="flex space-x-4">
-                  <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
-                  <RadioGroupItem value="student" id="student" disabled={loading} />
-                  <Label htmlFor="student" className="cursor-pointer">
-                    Student
-                  </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
-                  <RadioGroupItem value="company" id="company" disabled={loading} />
-                  <Label htmlFor="company" className="cursor-pointer">
-                    Company
-                  </Label>
-                  </div>
-                </RadioGroup>
+            <TabsContent value="signup">
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
                 </div>
-             
 
-              <Button
-                type="submit"
-                className="w-full bg-gradient-primary hover:shadow-glow transition-all"
-                disabled={loading}
-              >
-                {loading ? "Sending OTP..." : "Sign Up with Email"}
-              </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                  <div className="space-y-3">
+                  <Label>I am a:</Label>
+                  <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")} className="flex space-x-4">
+                    <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
+                    <RadioGroupItem value="student" id="student" disabled={loading} />
+                    <Label htmlFor="student" className="cursor-pointer">
+                      Student
+                    </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
+                    <RadioGroupItem value="company" id="company" disabled={loading} />
+                    <Label htmlFor="company" className="cursor-pointer">
+                      Company
+                    </Label>
+                    </div>
+                  </RadioGroup>
+                  </div>
+               
 
-              <p className="text-xs text-muted-foreground text-center">
-                By signing up, you agree to our Terms of Service
-              </p>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="signin">
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
-                <Input
-                  id="signin-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-primary hover:shadow-glow transition-all"
                   disabled={loading}
-                />
-              </div>
+                >
+                  {loading ? "Sending OTP..." : "Sign Up with Email"}
+                </Button>
 
-              {/* <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
-                <Input
-                  id="signin-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                <p className="text-xs text-muted-foreground text-center">
+                  By signing up, you agree to our Terms of Service
+                </p>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signin">
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* <div className="space-y-2">
+                  <Label htmlFor="signin-password">Password</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div> */}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-primary hover:shadow-glow transition-all"
                   disabled={loading}
-                />
-              </div> */}
-
-              <Button
-                type="submit"
-                className="w-full bg-gradient-primary hover:shadow-glow transition-all"
-                disabled={loading}
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
-      </Card>
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </Card>
+      </div>
     </div>
   );
 };

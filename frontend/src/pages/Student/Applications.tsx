@@ -70,7 +70,7 @@ const Applications = () => {
 
   if (loading && page === 1) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
       </div>
     );
