@@ -3,11 +3,47 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const studnet_1 = require("../models/studnet");
+const { log } = require("node:console");
 const router = (0, express_1.Router)();
 // Get student profile
 router.get('/', auth_1.verifyToken, async (req, res) => {
     try {
-        const profile = await studnet_1.StudentProfile.findOne({ user_id: req.user.id });
+        const profile = await StudentProfile.aggregate([
+            { $match: { user_id: req.user.id } },
+            {
+                $lookup: {
+                    from: 'profiles',
+                    localField: 'user_id',
+                    foreignField: 'user_id',
+                    as: 'user_info',
+                },
+            },
+            { $unwind: '$user_info' },
+            {
+                $project: {
+                    user_id: 1,
+                    bio: 1,
+                    // university: 1,
+                    degree: 1,
+                    graduation_year: 1,
+                    location: 1,
+                    skills: 1,
+                    resume_url: 1,
+                    phone: 1,
+                    linkedin_url: 1,
+                    github_url: 1,
+                    created_at: 1,
+                    updated_at: 1,
+                    user: {
+                        email: '$user_info.email',
+                        full_name: '$user_info.full_name',
+                        avatar_url: '$user_info.avatar_url',
+                    },
+                },
+            },
+        ]).exec();
+        console.log(profile);
+        
         res.json({ profile: profile || null });
     }
     catch (error) {

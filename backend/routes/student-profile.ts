@@ -10,10 +10,46 @@ interface AuthRequest extends Request {
 
 // Get student profile
 router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
+  console.log("GET STUDENT");
+  
   try {
-    const profile = await StudentProfile.findOne({ user_id: req.user.id });
 
-    res.json({ profile: profile || null });
+    const profile = await StudentProfile.aggregate([
+      { $match: { user_id: req.user.id } },
+      {
+        $lookup: {
+          from: 'profiles',
+          localField: 'user_id',
+          foreignField: 'user_id',
+          as: 'user_info',
+        },
+      },
+      { $unwind: '$user_info' },
+      {
+        $project: {
+          user_id: 1,
+          bio: 1,
+          // university: 1,
+          degree: 1,
+          graduation_year: 1,
+          location: 1,
+          skills: 1,
+          resume_url: 1,
+          phone: 1,
+          linkedin_url: 1,
+          github_url: 1,
+          created_at: 1,
+          updated_at: 1,
+          user: {
+            email: '$user_info.email',
+            full_name: '$user_info.full_name',
+            avatar_url: '$user_info.avatar_url',
+          },
+        },
+      },
+    ]).exec();
+    
+    res.json({profile:profile [0] || null});
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -21,6 +57,8 @@ router.get('/', verifyToken, async (req: AuthRequest, res: Response) => {
 
 // Create student profile
 router.post('/', verifyToken, async (req: AuthRequest, res: Response) => {
+  console.log("CREATE STUDENT");
+  
   const {
     bio,
     university,
@@ -66,6 +104,8 @@ router.post('/', verifyToken, async (req: AuthRequest, res: Response) => {
 
 // Update student profile
 router.put('/', verifyToken, async (req: AuthRequest, res: Response) => {
+  console.log("UPDATE STUDENT");
+  
   const updates = req.body;
 
   try {
@@ -87,8 +127,9 @@ router.put('/', verifyToken, async (req: AuthRequest, res: Response) => {
 
 // Get student profile by ID (public)
 router.get('/public/:user_id', async (req: Request, res: Response) => {
+  console.log("GET PUBLIC STUDENT");
   const { user_id } = req.params;
-
+  
   try {
     const profile = await StudentProfile.findOne({ user_id }).populate({
       path: 'user_id',
@@ -107,6 +148,7 @@ router.get('/public/:user_id', async (req: Request, res: Response) => {
 
 // Search students by skills
 router.get('/search', async (req: Request, res: Response) => {
+  console.log("SEARCH STUDENTS");
   const { skills, university, graduation_year, page = 1, limit = 20 } = req.query;
 
   try {

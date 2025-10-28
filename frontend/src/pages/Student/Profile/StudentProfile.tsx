@@ -110,6 +110,8 @@ const StudentProfile = () => {
       }
 
       const response = await studentProfileAPI.getProfile();
+      console.log("Student",response);
+      
       const data = response.profile;
 
       if (data) {
@@ -255,13 +257,18 @@ const StudentProfile = () => {
               <Avatar className="w-20 h-20">
                 <AvatarImage src={formData.avatar_url} />
                 <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl">
-                  {profile?.user_id?.full_name?.[0] || "U"}
+                  {profile?.user?.full_name?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {profile?.user_id?.full_name || "Your Profile"}
-                </h1>
+                <div className=" bg-gradient-primary bg-clip-text text-transparent">
+                  <h1 className="text-3xl font-bold">
+                  {profile?.user?.full_name || "Profile"}
+                  </h1>
+                  <span className="text-lg bg-gradient-primary bg-clip-text text-transparent">
+                    {profile?.user?.email}
+                  </span>
+                </div>
                 <p className="text-muted-foreground">
                   {formData.degree} {formData.university && `at ${formData.university}`}
                 </p>
@@ -326,9 +333,10 @@ const StudentProfile = () => {
                           setFormData({ ...formData, bio: e.target.value })
                         }
                         rows={5}
+                        className="w-full overflow-hidden resize-none"
                       />
                     ) : (
-                      <p className="text-muted-foreground whitespace-pre-line">
+                      <p className="text-muted-foreground text-wrap overflow-scroll whitespace-pre-line">
                         {formData.bio || "No bio added yet"}
                       </p>
                     )}
