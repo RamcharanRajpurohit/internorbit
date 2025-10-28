@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,19 +86,21 @@ const handleSave = async () => {
   }
 };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <Loader/>
-      </div>
-    );
-  }
+const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation role="company" />
+      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
+      {
+        loading ? (
+          <div className="min-h-screen flex items-center justify-center ">
+            <Loader />
+          </div>
+        ) : null
+      }
 
-      <main className="container mx-auto px-4 py-8">
+      <main onClick={()=>isMenuOpen?setIsMenuOpen(false):null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
         <div className="max-w-2xl mx-auto">
           <div className="mb-8 animate-slide-up">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">

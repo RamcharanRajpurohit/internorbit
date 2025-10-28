@@ -1,11 +1,12 @@
 // frontend/src/pages/CompanyPublicProfile.tsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { companyProfileAPI, internshipAPI } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
+
 import {
   Building,
   MapPin,
@@ -55,23 +56,26 @@ const CompanyPublicProfile = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <Loader/>
-      </div>
-    );
-  }
 
   if (!company) {
     return null;
   }
 
+const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation role="student" />
+      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
+      {
+        loading ? (
+          <div className="min-h-screen flex items-center justify-center ">
+            <Loader />
+          </div>
+        ) : null
+      }
 
-      <main className="container mx-auto px-4 py-8">
+      <main onClick={()=>isMenuOpen?setIsMenuOpen(false):null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
         <div className="max-w-5xl mx-auto">
           <Button
             variant="ghost"

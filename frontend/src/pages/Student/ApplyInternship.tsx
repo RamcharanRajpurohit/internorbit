@@ -1,5 +1,5 @@
 // frontend/src/pages/ApplyInternship.tsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { internshipAPI, applicationAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ const ApplyInternship = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.cover_letter || !formData.resume_url) {
       toast.error("Please fill in all required fields");
       return;
@@ -65,13 +65,7 @@ const ApplyInternship = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
+
 
   if (!internship) {
     return null;
@@ -79,11 +73,21 @@ const ApplyInternship = () => {
 
   const company = internship.company_id;
 
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation role="student" />
+      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
+      {
+        loading ? (
+          <div className="min-h-screen flex items-center justify-center ">
+            <Loader />
+          </div>
+        ) : null
+      }
 
-      <main className="container mx-auto px-4 py-8">
+      <main onClick={() => isMenuOpen ? setIsMenuOpen(false) : null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
         <div className="max-w-3xl mx-auto">
           <Button
             variant="ghost"

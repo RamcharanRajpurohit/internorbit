@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,46 +27,46 @@ const CompanyApplicants = () => {
     loadApplications();
   }, []);
 
- const loadApplications = async () => {
-  try {
-    const session = await getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
+  const loadApplications = async () => {
+    try {
+      const session = await getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      // CHANGED: Use backend API instead of supabase
+      const response = await applicationAPI.getCompanyApplications({
+        page: 1,
+        limit: 100,
+      });
+
+      setApplications(response.applications || []);
+    } catch (error: any) {
+      toast.error("Failed to load applications");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // CHANGED: Use backend API instead of supabase
-    const response = await applicationAPI.getCompanyApplications({
-      page: 1,
-      limit: 100,
-    });
+  const handleStatusChange = async (
+    applicationId: string,
+    newStatus: string
+  ) => {
+    try {
+      // CHANGED: Use backend API instead of supabase
+      await applicationAPI.updateStatus(applicationId, newStatus);
 
-    setApplications(response.applications || []);
-  } catch (error: any) {
-    toast.error("Failed to load applications");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleStatusChange = async (
-  applicationId: string,
-  newStatus: string
-) => {
-  try {
-    // CHANGED: Use backend API instead of supabase
-    await applicationAPI.updateStatus(applicationId, newStatus);
-    
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === applicationId ? { ...app, status: newStatus } : app
-      )
-    );
-    toast.success("Application status updated!");
-  } catch (error: any) {
-    toast.error("Failed to update status");
-  }
-};
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === applicationId ? { ...app, status: newStatus } : app
+        )
+      );
+      toast.success("Application status updated!");
+    } catch (error: any) {
+      toast.error("Failed to update status");
+    }
+  };
 
   const filteredApplications =
     filterStatus === "all"
@@ -103,19 +103,23 @@ const handleStatusChange = async (
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <Loader/>
-      </div>
-    );
-  }
+
+
+const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation role="company" />
+      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
+      {
+        loading ? (
+          <div className="min-h-screen flex items-center justify-center ">
+            <Loader />
+          </div>
+        ) : null
+      }
 
-      <main className="container mx-auto px-4 py-8">
+      <main onClick={()=>isMenuOpen?setIsMenuOpen(false):null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 animate-slide-up">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">

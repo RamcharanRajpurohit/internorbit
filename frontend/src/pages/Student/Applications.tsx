@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { applicationAPI } from "@/lib/api";
@@ -68,167 +68,168 @@ const Applications = () => {
     return colors[appStatus] || "bg-gray-500";
   };
 
-  if (loading && page === 1) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation role="student" />
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-              My Applications
-            </h1>
-            <p className="text-muted-foreground">
-              {total} total applications
-            </p>
+      <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} role="student" />
+      {
+        loading ? (
+          <div className="min-h-screen flex items-center justify-center ">
+            <Loader />
           </div>
+        ) : null
+      }
 
-          <Tabs value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
-              <TabsTrigger value="shortlisted">Shortlisted</TabsTrigger>
-              <TabsTrigger value="accepted">Accepted</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected</TabsTrigger>
-            </TabsList>
-          </Tabs>
+      <main onClick={() => isMenuOpen ? setIsMenuOpen(false) : null} className={`container mx-auto px-4 py-8 ${isMenuOpen ? "blur-sm pointer-events-none select-none" : ""}`}>       <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+            My Applications
+          </h1>
+          <p className="text-muted-foreground">
+            {total} total applications
+          </p>
+        </div>
 
-          {applications.length === 0 ? (
-            <Card className="text-center p-12">
-              <Briefcase className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-2xl font-bold mb-2">No applications yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Start swiping through internships and apply to positions you're interested in
-              </p>
-              <Button onClick={() => navigate("/")} className="bg-gradient-primary">
-                Discover Internships
-              </Button>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {applications.map((app) => {
-                const internship = app.internship_id;
-                const company = internship.company_id;
+        <Tabs value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} className="mb-6">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
+            <TabsTrigger value="shortlisted">Shortlisted</TabsTrigger>
+            <TabsTrigger value="accepted">Accepted</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-                return (
-                  <Card key={app._id} className="hover:shadow-elevated transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            {company?.logo_url ? (
-                              <img
-                                src={company.logo_url}
-                                alt={company.company_name}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-secondary flex items-center justify-center">
-                                <span className="text-white text-sm font-bold">
-                                  {company?.company_name?.[0]}
-                                </span>
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                {company?.company_name}
-                              </p>
+        {applications.length === 0 ? (
+          <Card className="text-center p-12">
+            <Briefcase className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-2xl font-bold mb-2">No applications yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Start swiping through internships and apply to positions you're interested in
+            </p>
+            <Button onClick={() => navigate("/")} className="bg-gradient-primary">
+              Discover Internships
+            </Button>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {applications.map((app) => {
+              const internship = app.internship_id;
+              const company = internship.company_id;
+
+              return (
+                <Card key={app._id} className="hover:shadow-elevated transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          {company?.logo_url ? (
+                            <img
+                              src={company.logo_url}
+                              alt={company.company_name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-secondary flex items-center justify-center">
+                              <span className="text-white text-sm font-bold">
+                                {company?.company_name?.[0]}
+                              </span>
                             </div>
+                          )}
+                          <div>
+                            <p className="text-sm text-muted-foreground">
+                              {company?.company_name}
+                            </p>
                           </div>
-                          <CardTitle className="text-2xl">{internship.title}</CardTitle>
-                          <CardDescription className="mt-1">
-                            Applied {new Date(app.applied_at).toLocaleDateString()}
-                          </CardDescription>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={`${getStatusColor(app.status)} text-white`}>
-                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                          </Badge>
-                        </div>
+                        <CardTitle className="text-2xl">{internship.title}</CardTitle>
+                        <CardDescription className="mt-1">
+                          Applied {new Date(app.applied_at).toLocaleDateString()}
+                        </CardDescription>
                       </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="flex flex-wrap gap-4 mb-4">
-                        {internship.location && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4" />
-                            {internship.location}
-                          </div>
-                        )}
-                        {internship.duration_months && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            {internship.duration_months} months
-                          </div>
-                        )}
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={`${getStatusColor(app.status)} text-white`}>
+                          {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                        </Badge>
                       </div>
+                    </div>
+                  </CardHeader>
 
-                      {app.cover_letter && (
-                        <div className="mb-4 p-3 bg-muted rounded-lg">
-                          <p className="text-sm font-semibold mb-1">Cover Letter:</p>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {app.cover_letter}
-                          </p>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      {internship.location && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="w-4 h-4" />
+                          {internship.location}
                         </div>
                       )}
+                      {internship.duration_months && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          {internship.duration_months} months
+                        </div>
+                      )}
+                    </div>
 
-                      <div className="flex gap-2 mt-4">
+                    {app.cover_letter && (
+                      <div className="mb-4 p-3 bg-muted rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Cover Letter:</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {app.cover_letter}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        onClick={() => navigate(`/internship/${internship._id}`)}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        View Position
+                      </Button>
+                      {app.status === "pending" && (
                         <Button
-                          onClick={() => navigate(`/internship/${internship._id}`)}
+                          onClick={() => handleWithdraw(app._id)}
                           variant="outline"
                           className="flex-1"
                         >
-                          View Position
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Withdraw
                         </Button>
-                        {app.status === "pending" && (
-                          <Button
-                            onClick={() => handleWithdraw(app._id)}
-                            variant="outline"
-                            className="flex-1"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Withdraw
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
 
-              {/* Pagination */}
-              <div className="flex justify-center gap-2 mt-8">
-                <Button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  variant="outline"
-                >
-                  Previous
-                </Button>
-                <span className="flex items-center px-4">
-                  Page {page} of {Math.ceil(total / 10)}
-                </span>
-                <Button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page >= Math.ceil(total / 10)}
-                  variant="outline"
-                >
-                  Next
-                </Button>
-              </div>
+            {/* Pagination */}
+            <div className="flex justify-center gap-2 mt-8">
+              <Button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                variant="outline"
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-4">
+                Page {page} of {Math.ceil(total / 10)}
+              </span>
+              <Button
+                onClick={() => setPage(page + 1)}
+                disabled={page >= Math.ceil(total / 10)}
+                variant="outline"
+              >
+                Next
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
       </main>
     </div>
   );
