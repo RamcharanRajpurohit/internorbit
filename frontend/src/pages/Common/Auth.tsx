@@ -251,63 +251,64 @@ const Auth = () => {
   };
 
   // Email/Password Sign In
-  const handlePasswordSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // const handlePasswordSignIn = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+  //   try {
+  //     const { data, error } = await supabase.auth.signInWithPassword({
+  //       email,
+  //       password,
+  //     });
 
-      if (error) throw error;
+  //     if (error) throw error;
 
-      if (!data.user?.id || !data.session?.access_token) {
-        throw new Error('Sign in failed');
-      }
+  //     if (!data.user?.id || !data.session?.access_token) {
+  //       throw new Error('Sign in failed');
+  //     }
 
-      // Create backend profile if doesn't exist
-      try {
-        await createBackendProfile(data.user.id, data.session.access_token, {
-          email: data.user.email,
-          full_name: data.user.user_metadata?.full_name || email.split('@')[0],
-          role: data.user.user_metadata?.role || 'student',
-        });
-      } catch (err) {
-        // Profile might already exist, continue anyway
-        console.log('Profile may already exist');
-      }
+  //     // Create backend profile if doesn't exist
+  //     try {
+  //       await createBackendProfile(data.user.id, data.session.access_token, {
+  //         email: data.user.email,
+  //         full_name: data.user.user_metadata?.full_name || email.split('@')[0],
+  //         role: data.user.user_metadata?.role || 'student',
+  //       });
+  //     } catch (err) {
+  //       // Profile might already exist, continue anyway
+  //       console.log('Profile may already exist');
+  //     }
 
-      toast.success('Welcome back!');
-      setEmail("");
-      setPassword("");
+  //     toast.success('Welcome back!');
+  //     setEmail("");
+  //     setPassword("");
 
-      // Use window.location to force a full page reload and state refresh
-      window.location.href = '/';
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      toast.error(error.message || 'Sign in failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     // Use window.location to force a full page reload and state refresh
+  //     window.location.href = '/';
+  //   } catch (error: any) {
+  //     console.error('Sign in error:', error);
+  //     toast.error(error.message || 'Sign in failed');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleAuth = (e: React.FormEvent) => {
-    if (isSignUp) {
-      handleEmailSignUp(e);
-    } else {
-      handlePasswordSignIn(e);
-    }
+    // if (isSignUp) {
+    //   handleEmailSignUp(e);
+    // } else {
+    //   handlePasswordSignIn(e);
+    // }
+    handleEmailSignUp(e)
   };
 
   // Role Selection Screen (for Google OAuth)
   if (showRoleSelection) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center  p-4 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
+          <div className="absolute top-20 left-20 w-72 h-72  rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
         </div>
 
         <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
@@ -370,10 +371,10 @@ const Auth = () => {
   // OTP Form
   if (showOTP) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
+          <div className="absolute top-20 left-20 w-72 h-72  rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96  rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
         </div>
 
         <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
@@ -437,15 +438,15 @@ const Auth = () => {
 
   // Main Auth Form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
+        <div className="absolute top-20 left-20 w-72 h-72 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96  rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
       </div>
 
       <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold  bg-clip-text  mb-2">
             InternOrbit
           </h1>
           <p className="text-muted-foreground">
@@ -506,24 +507,24 @@ const Auth = () => {
                   disabled={loading}
                 />
               </div>
-
-              <div className="space-y-3">
+                <div className="space-y-3">
                 <Label>I am a:</Label>
-                <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")}>
+                <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")} className="flex space-x-4">
                   <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
-                    <RadioGroupItem value="student" id="student" disabled={loading} />
-                    <Label htmlFor="student" className="flex-1 cursor-pointer">
-                      Student looking for internships
-                    </Label>
+                  <RadioGroupItem value="student" id="student" disabled={loading} />
+                  <Label htmlFor="student" className="cursor-pointer">
+                    Student
+                  </Label>
                   </div>
                   <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
-                    <RadioGroupItem value="company" id="company" disabled={loading} />
-                    <Label htmlFor="company" className="flex-1 cursor-pointer">
-                      Company hiring interns
-                    </Label>
+                  <RadioGroupItem value="company" id="company" disabled={loading} />
+                  <Label htmlFor="company" className="cursor-pointer">
+                    Company
+                  </Label>
                   </div>
                 </RadioGroup>
-              </div>
+                </div>
+             
 
               <Button
                 type="submit"
@@ -554,7 +555,7 @@ const Auth = () => {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="signin-password">Password</Label>
                 <Input
                   id="signin-password"
@@ -565,7 +566,7 @@ const Auth = () => {
                   required
                   disabled={loading}
                 />
-              </div>
+              </div> */}
 
               <Button
                 type="submit"

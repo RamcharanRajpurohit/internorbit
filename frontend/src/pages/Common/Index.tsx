@@ -84,7 +84,7 @@ const Index = () => {
           setUser(null);
           setProfile(null);
           localStorage.removeItem('userId');
-          navigate('/auth');
+          navigate('/');
         }
       }
     );
