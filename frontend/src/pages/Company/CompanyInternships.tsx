@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Loader } from "@/components/ui/Loader";
 
 const CompanyInternships = () => {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ const handleDelete = async (id: string) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

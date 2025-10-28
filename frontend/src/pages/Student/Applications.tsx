@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Briefcase, Calendar, MapPin, Trash2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader } from "@/components/ui/Loader";
 
 const Applications = () => {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ const Applications = () => {
   if (loading && page === 1) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

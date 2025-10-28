@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CheckCircle, Clock, XCircle, Building } from "lucide-react";
+import { Loader } from "@/components/ui/Loader";
 
 const CompanyApplicants = () => {
   const navigate = useNavigate();
@@ -105,7 +106,7 @@ const handleStatusChange = async (
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

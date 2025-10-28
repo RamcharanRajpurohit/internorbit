@@ -19,6 +19,7 @@ import {
   Send,
   ArrowLeft,
 } from "lucide-react";
+import { Loader } from "@/components/ui/Loader";
 
 const InternshipDetail = () => {
   const navigate = useNavigate();
@@ -97,7 +98,7 @@ const InternshipDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

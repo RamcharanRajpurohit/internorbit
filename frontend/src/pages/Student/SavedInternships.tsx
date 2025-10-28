@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { MapPin, DollarSign, Calendar, Heart, Trash2 } from "lucide-react";
+import { Loader } from "@/components/ui/Loader";
 
 const SavedInternships = () => {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ const SavedInternships = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

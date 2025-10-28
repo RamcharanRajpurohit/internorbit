@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/Loader";
 import Navigation from "@/components/Navigation";
 import { 
   Save, Upload, Edit, X, Plus, Trash2, 
@@ -240,7 +241,7 @@ const StudentProfile = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader />
       </div>
     );
   }

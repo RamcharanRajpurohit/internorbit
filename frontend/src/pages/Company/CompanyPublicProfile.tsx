@@ -17,6 +17,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/Loader";
 
 const CompanyPublicProfile = () => {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ const CompanyPublicProfile = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

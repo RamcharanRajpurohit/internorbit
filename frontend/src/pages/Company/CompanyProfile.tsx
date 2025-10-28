@@ -10,6 +10,7 @@ import Navigation from "@/components/Navigation";
 import { Save } from "lucide-react";
 import { companyProfileAPI } from "@/lib/api";
 import { getSession } from "@/integrations/supabase/client";
+import { Loader } from "@/components/ui/Loader";
 
 
 const CompanyProfile = () => {
@@ -88,7 +89,7 @@ const handleSave = async () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

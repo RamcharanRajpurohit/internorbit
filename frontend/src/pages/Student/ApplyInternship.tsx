@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Send, ArrowLeft, Upload } from "lucide-react";
+import { Loader } from "@/components/ui/Loader";
 
 const ApplyInternship = () => {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ const ApplyInternship = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

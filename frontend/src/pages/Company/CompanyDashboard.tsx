@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import { Plus, Briefcase, Users, TrendingUp, Eye } from "lucide-react";
 import { internshipAPI } from "@/lib/api";
 import { getSession } from "@/integrations/supabase/client";
+import { Loader } from "@/components/ui/Loader";
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const CompanyDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }

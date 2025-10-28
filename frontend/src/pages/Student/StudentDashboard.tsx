@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import SwipeCard from "@/components/SwipeCard";
 import Navigation from "@/components/Navigation";
+import { Loader } from "@/components/ui/Loader";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ const StudentDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <div className="animate-pulse text-2xl text-primary">Loading...</div>
+        <Loader/>
       </div>
     );
   }
