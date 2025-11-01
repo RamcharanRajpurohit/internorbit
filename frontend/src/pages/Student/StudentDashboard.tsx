@@ -34,15 +34,19 @@ const StudentDashboard = () => {
 
       // Get all active internships
       const response = await internshipAPI.getAll({ page: 1, limit: 50 });
+      console.log("All internships:", response.internships);
 
       // Get user's swiped internships
       const swipesResponse = await interactionAPI.getSwipes({ page: 1, limit: 100 });
-      const swipedIds = swipesResponse.swipes?.map((s: any) => s.internship_id) || [];
+      console.log("User swipes:", swipesResponse.swipes);
+      const swipedIds = swipesResponse.swipes?.map((s) => s.internship_id._id) || [];
+      console.log("Swiped internship IDs:", swipedIds);
 
       // Filter out internships already swiped
       const filteredInternships = response.internships.filter(
         (internship: any) => !swipedIds.includes(internship._id)
       );
+      console.log("Filtered internships:", filteredInternships);
 
       setInternships(filteredInternships);
     } catch (error: any) {

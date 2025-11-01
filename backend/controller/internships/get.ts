@@ -75,4 +75,56 @@ const getAllInternships = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export { getAllInternships };
+const getAllByCompanyId = async (req: AuthRequest, res: Response) => {
+  const { page = 1, limit = 10 } = req.query;
+  try {
+    // Find company profile for authenticated user
+    const company = await CompanyProfile.findOne({ user_id: req.user.id });
+    if (!company) {
+      return res.status(404).json({ error: "Company profile not found" });
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const query: any = { company_id: company._id };
+
+    const total = await Internship.countDocuments(query);
+    const internships = await Internship.find(query)
+      .populate({
+        path: "company_id",
+        // select useful company fields; model can be the CompanyProfile model
+        select: "user_id company_name logo_url industry location",
+        model: CompanyProfile,
+      })
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    // Ensure a consistent "company" object is attached to each internship
+    const populatedInternships = await Promise.all(
+      internships.map(async (internship) => {
+        const companyProfile = await CompanyProfile.findOne({
+          _id: internship.company_id,
+        });
+        return {
+          ...internship.toObject(),
+          company: companyProfile ? companyProfile.toObject() : null,
+        };
+      })
+    );
+
+    res.json({
+      internships: populatedInternships,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching company internships:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export { getAllInternships, getAllByCompanyId };

@@ -34,8 +34,8 @@ const CompanyDashboard = () => {
 
   const loadStats = async () => {
   try {
-    // CHANGED: Use backend API instead of supabase
-    const response = await internshipAPI.getAll({
+    
+    const response = await internshipAPI.getAllByCompanyId({
       page: 1,
       limit: 1000, // Get all internships
     });
@@ -61,7 +61,7 @@ const CompanyDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
       </div>
     );

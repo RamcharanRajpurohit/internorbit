@@ -47,7 +47,7 @@ const CompanyInternships = () => {
     }
 
     // CHANGED: Use backend API instead of supabase
-    const response = await internshipAPI.getAll({
+    const response = await internshipAPI.getAllByCompanyId({
       page: 1,
       limit: 100,
     });
@@ -73,7 +73,7 @@ const handleDelete = async (id: string) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
       </div>
     );

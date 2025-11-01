@@ -88,6 +88,16 @@ export const internshipAPI = {
   delete: (id: string) => apiCall(`/internships/${id}`, {
     method: 'DELETE',
   }),
+  getAllByCompanyId: (params?: {
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', String(params.page));
+    if (params?.limit) query.append('limit', String(params.limit));
+    
+    return apiCall(`/internships/company${query.toString() ? '?' + query.toString() : ''}`);
+  },
 };
 
 // ============ APPLICATION ENDPOINTS ============
