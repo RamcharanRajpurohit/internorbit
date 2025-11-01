@@ -3,7 +3,7 @@ import { verifyToken } from '../middleware/auth';
 
 import CreateStudentProfile from '../controller/student/create';
 import GetStudentProfile from '../controller/student/get';
-import GetStudentProfilePublic from '../controller/student/public/get';
+import updateStudentProfile from '../controller/student/update';
 import SearchStudentProfile from '../controller/student/search';
 
 export const router = Router();
@@ -15,7 +15,7 @@ router.get('/', verifyToken,GetStudentProfile);
 router.post('/', verifyToken, CreateStudentProfile);
 
 // Update student profile
-router.put('/', verifyToken,GetStudentProfilePublic);
+router.put('/', verifyToken,updateStudentProfile);
 
 // Search students by skills
 router.get('/search', SearchStudentProfile);

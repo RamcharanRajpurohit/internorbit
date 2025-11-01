@@ -1,7 +1,7 @@
 import { Router} from 'express';
 import { verifyToken } from '../middleware/auth';
-import { createSwipe ,getSwipes, getSwipeStats} from '../controller/interactions/studnet/internship-swipe/get';
-import { deleteSavedInternshipbyId, isSavedInternship,getSavedInternships,SaveInternship } from '../controller/interactions/studnet/internship-save/get.saved';
+import { createSwipe ,getSwipes, getSwipeStats} from '../controller/interactions/student/internship-swipe/get';
+import { deleteSavedInternshipbyId, isSavedInternship,getSavedInternships,SaveInternship } from '../controller/interactions/student/internship-save/get.saved';
 
 
 const router = Router();

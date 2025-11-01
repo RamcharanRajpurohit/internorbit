@@ -18,7 +18,7 @@ export const initUserProfile = async (req: AuthRequest, res: Response) => {
 
     // 🆕 Create new profile
     profile = new Profile({
-      user_id: id, // 👈 NOT _id anymore
+      user_id: id, //
       email,
       full_name: full_name || email.split('@')[0],
       role: role || 'student',
