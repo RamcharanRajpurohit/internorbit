@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { Send, ArrowLeft, Upload } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
 

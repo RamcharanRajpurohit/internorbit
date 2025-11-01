@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { Search as SearchIcon, MapPin, DollarSign, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
 

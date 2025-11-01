@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { Save } from "lucide-react";
 import { companyProfileAPI } from "@/lib/api";
 import { getSession } from "@/integrations/supabase/client";

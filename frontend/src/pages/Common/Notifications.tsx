@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { toast } from "sonner";
 import { getSession } from "@/integrations/supabase/client";
 import {

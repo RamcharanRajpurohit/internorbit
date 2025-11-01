@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { Briefcase, Calendar, MapPin, Trash2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader } from "@/components/ui/Loader";

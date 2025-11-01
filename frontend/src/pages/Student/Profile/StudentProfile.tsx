@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader } from "@/components/ui/Loader";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { 
   Save, Upload, Edit, X, Plus, Trash2, 
   User, GraduationCap, Briefcase, FileText, 

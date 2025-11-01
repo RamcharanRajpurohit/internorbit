@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import {
   Mail,
   MessageCircle,

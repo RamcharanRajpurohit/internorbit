@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { MapPin, DollarSign, Calendar, Heart, Trash2 } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
 

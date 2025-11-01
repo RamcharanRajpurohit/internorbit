@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { toast } from "sonner";
 import { applicationAPI } from "@/lib/api";
 import { getSession } from "@/integrations/supabase/client";

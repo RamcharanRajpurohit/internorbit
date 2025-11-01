@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { internshipAPI, interactionAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import SwipeCard from "@/components/SwipeCard";
-import Navigation from "@/components/Navigation";
+import SwipeCard from "@/components/student/SwipeCard";
+import Navigation from "@/components/common/Navigation";
 import { Loader } from "@/components/ui/Loader";
 
 const StudentDashboard = () => {

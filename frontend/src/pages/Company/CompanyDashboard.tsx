@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/components/common/Navigation";
 import { Plus, Briefcase, Users, TrendingUp, Eye } from "lucide-react";
 import { internshipAPI } from "@/lib/api";
 import { getSession } from "@/integrations/supabase/client";
