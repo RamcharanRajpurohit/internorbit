@@ -25,9 +25,10 @@ const getOneInternship = async (req: AuthRequest, res: Response) => {
       user_id: internship.company_id,
     });
 
-    // Increment views
-    internship.views_count += 1;
-    await internship.save();
+    // Increment views 
+    //to do implement views count base on unique users
+    // internship.views_count += 1;
+    // await internship.save();
 
     res.json({
       internship: {

@@ -241,7 +241,7 @@ const Auth = () => {
       setOtp("");
 
       // Use window.location to force a full page reload and state refresh
-      window.location.href = '/';
+      window.location.href = '/auth/callback';
     } catch (error: any) {
       console.error('Verification error:', error);
       toast.error(error.message || 'Failed to verify OTP');
@@ -519,7 +519,7 @@ const Auth = () => {
                     disabled={loading}
                   />
                 </div>
-                  <div className="space-y-3">
+                  {/* <div className="space-y-3">
                   <Label>I am a:</Label>
                   <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")} className="flex space-x-4">
                     <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
@@ -536,7 +536,7 @@ const Auth = () => {
                     </div>
                   </RadioGroup>
                   </div>
-               
+                */}
 
                 <Button
                   type="submit"
