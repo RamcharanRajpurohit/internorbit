@@ -11,6 +11,8 @@ import applicationRoutes from './routes/applications';
 import interactionRoutes from './routes/interactions';
 import companyProfileRoutes from './routes/company-profile';
 import studentProfileRoutes from './routes/student-profile';
+import resume from './routes/resume';
+
 
 
 dotenv.config();
@@ -51,6 +53,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/interactions', interactionRoutes);
 app.use('/api/company-profile', companyProfileRoutes);
 app.use('/api/student-profile', studentProfileRoutes);
+app.use('/api/resume', resume);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
