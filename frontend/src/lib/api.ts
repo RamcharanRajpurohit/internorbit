@@ -129,7 +129,11 @@ export const applicationAPI = {
     return apiCall(`/applications/company${query.toString() ? '?' + query.toString() : ''}`);
   },
 
-  create: (data: { internship_id: string; cover_letter: string; resume_url: string }) =>
+  create: (data: { 
+    internship_id: string; 
+    resume_id: string; // NEW: Now requires resume_id
+    cover_letter: string; 
+  }) =>
     apiCall('/applications', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -260,4 +264,43 @@ export const studentProfileAPI = {
     
     return apiCall(`/student-profile/search${query.toString() ? '?' + query.toString() : ''}`);
   },
+};
+
+
+export const resumeAPI = {
+  getApplicationResume: (applicationId: string, accessType: 'view' | 'download' = 'view') =>
+    apiCall(`/resume/:resume_id/access?application_id=${applicationId}&access_type=${accessType}`, {
+      method: 'POST',
+    }),
+
+  // Company discovers public resumes
+  discoverResumes: (params?: {
+    page?: number;
+    limit?: number;
+    skills?: string;
+    university?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append('page', String(params.page));
+    if (params?.limit) query.append('limit', String(params.limit));
+    if (params?.skills) query.append('skills', params.skills);
+    if (params?.university) query.append('university', params.university);
+    
+    return apiCall(`/resume/discover${query.toString() ? '?' + query.toString() : ''}`);
+  },
+
+
+  getStats: () => apiCall('/resume/stats'),
+  
+  updateVisibility: (resumeId: string, visibility: 'private' | 'public' | 'restricted') =>
+    apiCall(`/resume/${resumeId}/visibility`, {
+      method: 'PATCH',
+      body: JSON.stringify({ visibility }),
+    }),
+
+  deleteResume: (resumeId: string) =>
+    apiCall(`/resume/${resumeId}`, { method: 'DELETE' }),
+
+  setPrimary: (resumeId: string) =>
+    apiCall(`/resume/${resumeId}/set-primary`, { method: 'PATCH' }),
 };

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Profile } from '../../../models/profile';
 import { StudentProfile } from '../../../models/studnet';
+import { Resume } from '../../../models/resume';
 import { Application } from '../../../models/applications';
 import { Internship } from '../../../models/internships';
 
@@ -9,20 +10,39 @@ interface AuthRequest extends Request {
 }
 
 const createApplication = async (req: AuthRequest, res: Response) => {
-  const { internship_id, cover_letter, resume_url } = req.body;
+  const { internship_id, resume_id, cover_letter } = req.body;
 
-
-  const student = await StudentProfile.findOne({ user_id: req.user.id });
-  if (!student) {
-    return res.status(404).json({ error: 'Student profile not found' });
+  if (!internship_id || !resume_id || !cover_letter) {
+    return res.status(400).json({ 
+      error: 'internship_id, resume_id, and cover_letter are required' 
+    });
   }
 
   try {
+    // Get student profile
+    const student = await StudentProfile.findOne({ user_id: req.user.id });
+    if (!student) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
     // Verify user is a student
     const profile = await Profile.findOne({ user_id: req.user.id });
-
     if (profile?.role !== 'student') {
       return res.status(403).json({ error: 'Only students can apply' });
+    }
+
+    // Verify resume exists and belongs to student
+    const resume = await Resume.findById(resume_id);
+    if (!resume) {
+      return res.status(404).json({ error: 'Resume not found' });
+    }
+    if (resume.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Resume does not belong to you' });
+    }
+    if (resume.scan_status !== 'clean') {
+      return res.status(400).json({ 
+        error: 'Resume must pass security scan before applying' 
+      });
     }
 
     // Check if already applied
@@ -30,33 +50,53 @@ const createApplication = async (req: AuthRequest, res: Response) => {
       internship_id,
       student_id: student._id,
     });
-
     if (existing) {
       return res.status(400).json({ error: 'Already applied to this internship' });
+    }
+
+    // Verify internship exists
+    const internship = await Internship.findById(internship_id);
+    if (!internship) {
+      return res.status(404).json({ error: 'Internship not found' });
     }
 
     // Create application
     const application = new Application({
       internship_id,
       student_id: student._id,
+      resume_id, // NEW: Store resume reference
       cover_letter,
-      resume_url,
       status: 'pending',
     });
 
     await application.save();
 
     // Update internship applications count
-    const internship = await Internship.findById(internship_id);
-    if (internship) {
-      internship.applications_count = (internship.applications_count || 0) + 1;
-      await internship.save();
-    }
+    internship.applications_count = (internship.applications_count || 0) + 1;
+    await internship.save();
 
-    res.status(201).json({ application });
+    // Auto-share resume with company (for this application)
+    const ResumeShare = require('../../../models/resume-share').ResumeShare;
+    await ResumeShare.findOneAndUpdate(
+      { resume_id, student_id: student._id, company_id: internship.company_id },
+      { 
+        resume_id, 
+        student_id: student._id, 
+        company_id: internship.company_id,
+        access_level: 'download',
+      },
+      { upsert: true }
+    );
+
+    res.status(201).json({ 
+      application: await Application.findById(application._id)
+        .populate('resume_id', 'file_name file_path visibility scan_status')
+        .populate('student_id', 'full_name email')
+    });
   } catch (error: any) {
+    console.error('Application creation error:', error);
     res.status(500).json({ error: error.message });
   }
-}
+};
 
 export { createApplication };

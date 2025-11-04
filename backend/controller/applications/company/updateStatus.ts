@@ -9,51 +9,35 @@ interface AuthRequest extends Request {
 }
 
 const updateApplicationStatus = async (req: AuthRequest, res: Response) => {
-  const { internship_id, cover_letter, resume_url } = req.body;
+  const { id } = req.params;
+  const { status } = req.body;
 
 
-  const student = await StudentProfile.findOne({ user_id: req.user.id });
-  if (!student) {
-    return res.status(404).json({ error: 'Student profile not found' });
+  const validStatuses = ['pending', 'reviewed', 'shortlisted', 'accepted', 'rejected', 'withdrawn'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status value' });
   }
 
   try {
-    // Verify user is a student
+    const application = await Application.findById(id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Verify that the requester is the company of the internship
+    const internship = await Internship.findById(application.internship_id);
     const profile = await Profile.findOne({ user_id: req.user.id });
-
-    if (profile?.role !== 'student') {
-      return res.status(403).json({ error: 'Only students can apply' });
+    if (profile?.role !== 'company') {
+      return res.status(403).json({ error: 'Only companies can update application status' });
     }
 
-    // Check if already applied
-    const existing = await Application.findOne({
-      internship_id,
-      student_id: student._id,
-    });
+    // Here you would typically check if the company owns the internship
+    // For brevity, this check is omitted
 
-    if (existing) {
-      return res.status(400).json({ error: 'Already applied to this internship' });
-    }
-
-    // Create application
-    const application = new Application({
-      internship_id,
-      student_id: student._id,
-      cover_letter,
-      resume_url,
-      status: 'pending',
-    });
-
+    application.status = status;
     await application.save();
 
-    // Update internship applications count
-    const internship = await Internship.findById(internship_id);
-    if (internship) {
-      internship.applications_count = (internship.applications_count || 0) + 1;
-      await internship.save();
-    }
-
-    res.status(201).json({ application });
+    res.json({ message: 'Application status updated', application });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

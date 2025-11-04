@@ -1,10 +1,6 @@
-import { Request, Response } from 'express';
-
+import { Response } from 'express';
 import { Resume } from '../../models/resume';
-
-
 import { AuthRequest } from '../../middleware/auth';
-
 import { CompanyProfile } from '../../models/company-profile';
 
 const discoverResumes = async (req: AuthRequest, res: Response) => {

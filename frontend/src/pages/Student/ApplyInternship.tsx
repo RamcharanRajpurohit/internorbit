@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { internshipAPI, applicationAPI } from '@/lib/api';
+import { internshipAPI, applicationAPI, resumeAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import Navigation from '@/components/common/Navigation';
-import { Send, ArrowLeft, Upload, FileText, Plus, Eye, X, Download } from 'lucide-react';
-import { Loader } from '@/components/ui/Loader';
 import { ResumeUploader } from '@/components/student/ResumeUploader';
+import { 
+  Send, ArrowLeft, Upload, FileText, Plus, Eye, X, Download, AlertCircle 
+} from 'lucide-react';
+import { Loader } from '@/components/ui/Loader';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -29,18 +30,11 @@ const ApplyInternship = () => {
   const [internship, setInternship] = useState<any>(null);
   const [resumes, setResumes] = useState<any[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
-  const [uploadingNewResume, setUploadingNewResume] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-
-  const handleResumeUploadSuccess = (newResume: any) => {
-    setResumes([...resumes, newResume]);
-    setSelectedResumeId(newResume._id);
-    toast.success('Resume uploaded successfully!');
-  };
 
   const [formData, setFormData] = useState({
     cover_letter: '',
@@ -66,26 +60,37 @@ const ApplyInternship = () => {
   const loadResumes = async () => {
     try {
       const token = await getAuthToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URI}/resume/my-resumes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URI}/resume/my-resumes`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
-        setResumes(data.resumes || []);
-        if (data.resumes && data.resumes.length > 0) {
-          setSelectedResumeId(data.resumes[0]._id);
+        const cleanResumes = data.resumes || [];
+        setResumes(cleanResumes);
+        
+        // Auto-select primary or first resume
+        const primary = cleanResumes.find((r: any) => r.is_primary);
+        if (primary) {
+          setSelectedResumeId(primary._id);
+        } else if (cleanResumes.length > 0) {
+          setSelectedResumeId(cleanResumes[0]._id);
         }
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to load resumes');
       }
     } catch (error: any) {
       console.error('Error loading resumes:', error);
       toast.error('Failed to load resumes');
     }
+  };
+
+  const handleResumeUploadSuccess = (newResume: any) => {
+    setResumes([...resumes, newResume]);
+    setSelectedResumeId(newResume._id);
+    setShowUploadDialog(false);
+    toast.success('Resume uploaded successfully!');
   };
 
   const handlePreviewResume = async (resume: any) => {
@@ -95,7 +100,6 @@ const ApplyInternship = () => {
 
     try {
       const token = await getAuthToken();
-
       const response = await fetch(
         `${import.meta.env.VITE_API_URI}/resume/${resume._id}/access`,
         {
@@ -104,27 +108,21 @@ const ApplyInternship = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            access_type: 'view',
-          }),
+          body: JSON.stringify({ access_type: 'view' }),
         }
       );
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || 'Failed to load resume preview');
-        setPreviewOpen(false);
-        setPreviewLoading(false);
-        return;
+        throw new Error(error.error);
       }
 
       const data = await response.json();
       setPreviewUrl(data.signed_url);
-      setPreviewLoading(false);
     } catch (error: any) {
-      console.error('Error loading preview:', error);
       toast.error('Failed to load resume preview');
       setPreviewOpen(false);
+    } finally {
       setPreviewLoading(false);
     }
   };
@@ -138,7 +136,7 @@ const ApplyInternship = () => {
     }
 
     if (!formData.cover_letter.trim()) {
-      toast.error('Cover letter is required');
+      toast.error('Please write a cover letter');
       return;
     }
 
@@ -146,11 +144,11 @@ const ApplyInternship = () => {
     try {
       await applicationAPI.create({
         internship_id: id!,
-        resume_url: selectedResumeId,
+        resume_id: selectedResumeId,
         cover_letter: formData.cover_letter,
       });
 
-      toast.success('Application submitted successfully!');
+      toast.success('Application submitted! Good luck! 🚀');
       navigate('/applications');
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit application');
@@ -167,63 +165,9 @@ const ApplyInternship = () => {
     );
   }
 
-  if (!internship) {
-    return null;
-  }
+  if (!internship) return null;
 
   const company = internship.company_id;
-
-  const handleUploadNewResume = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
-      return;
-    }
-
-    if (
-      ![
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      ].includes(file.type)
-    ) {
-      toast.error('Please upload a PDF or Word document');
-      return;
-    }
-
-    setUploadingNewResume(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('resume', file);
-
-    try {
-      const token = await getAuthToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URI}/resume/upload`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formDataUpload,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setResumes([...resumes, data.resume]);
-        setSelectedResumeId(data.resume._id);
-        setShowUploadDialog(false);
-        toast.success('Resume uploaded successfully!');
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to upload resume');
-      }
-    } catch (error) {
-      console.error('Error uploading resume:', error);
-      toast.error('Upload failed');
-    } finally {
-      setUploadingNewResume(false);
-    }
-  };
 
   return (
     <>
@@ -239,50 +183,42 @@ const ApplyInternship = () => {
 
             <Card className="p-8 shadow-elevated">
               <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-2">Apply for {internship.title}</h1>
+                <h1 className="text-3xl font-bold mb-2">
+                  Apply for {internship.title}
+                </h1>
                 <p className="text-muted-foreground">
                   at {company?.company_name || 'Company'}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Resume Selection Section */}
-                <div className="space-y-3 p-4 bg-muted rounded-lg">
+                {/* Resume Selection - IMPROVED */}
+                <div className="space-y-3 p-4 bg-muted rounded-lg border-2 border-border">
                   <div className="flex items-center justify-between mb-4">
-                    <Label className="text-base font-semibold">Select or Upload Resume *</Label>
+                    <div>
+                      <Label className="text-base font-semibold">
+                        Select or Upload Resume *
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Choose a resume to include with your application
+                      </p>
+                    </div>
                     <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                       <DialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="gap-2">
-                          <Plus className="w-4 h-4" />
-                          Upload New
+                        <Button size="sm" variant="outline">
+                          <Plus className="w-4 h-4 mr-2" />
+                          New Resume
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Upload New Resume</DialogTitle>
-                          <DialogDescription>
-                            Upload a PDF or Word document (max 10 MB)
-                          </DialogDescription>
+                          <DialogTitle>Upload Resume</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                            <input
-                              type="file"
-                              accept=".pdf,.doc,.docx"
-                              onChange={handleUploadNewResume}
-                              disabled={uploadingNewResume}
-                              className="hidden"
-                              id="resume-upload"
-                            />
-                            <label htmlFor="resume-upload" className="cursor-pointer">
-                              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                              <p className="text-sm font-medium">
-                                {uploadingNewResume ? 'Uploading...' : 'Click to upload or drag and drop'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">PDF or Word (max 10 MB)</p>
-                            </label>
-                          </div>
-                        </div>
+                        <ResumeUploader
+                          open={true}
+                          onOpenChange={setShowUploadDialog}
+                          onSuccess={handleResumeUploadSuccess}
+                        />
                       </DialogContent>
                     </Dialog>
                   </div>
@@ -291,11 +227,11 @@ const ApplyInternship = () => {
                     <div className="text-center py-8">
                       <FileText className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground mb-3">
-                        No resumes yet. Upload your first resume.
+                        No resumes yet. Upload your first one.
                       </p>
                       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                         <DialogTrigger asChild>
-                          <Button size="sm" className="bg-gradient-primary">
+                          <Button className="bg-gradient-primary">
                             <Upload className="w-4 h-4 mr-2" />
                             Upload Resume
                           </Button>
@@ -304,25 +240,11 @@ const ApplyInternship = () => {
                           <DialogHeader>
                             <DialogTitle>Upload Resume</DialogTitle>
                           </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                              <input
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                onChange={handleUploadNewResume}
-                                disabled={uploadingNewResume}
-                                className="hidden"
-                                id="resume-upload-main"
-                              />
-                              <label htmlFor="resume-upload-main" className="cursor-pointer">
-                                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                <p className="text-sm font-medium">
-                                  {uploadingNewResume ? 'Uploading...' : 'Click to upload or drag and drop'}
-                                </p>
-                                <p className="text-xs text-muted-foreground">PDF or Word (max 10 MB)</p>
-                              </label>
-                            </div>
-                          </div>
+                          <ResumeUploader
+                            open={true}
+                            onOpenChange={setShowUploadDialog}
+                            onSuccess={handleResumeUploadSuccess}
+                          />
                         </DialogContent>
                       </Dialog>
                     </div>
@@ -332,13 +254,10 @@ const ApplyInternship = () => {
                         {resumes.map((resume) => (
                           <div
                             key={resume._id}
-                            className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary transition-colors cursor-pointer"
+                            className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary transition-colors"
                           >
-                            <RadioGroupItem value={resume._id} id={`resume-${resume._id}`} />
-                            <label
-                              htmlFor={`resume-${resume._id}`}
-                              className="flex-1 cursor-pointer"
-                            >
+                            <RadioGroupItem value={resume._id} id={resume._id} />
+                            <label htmlFor={resume._id} className="flex-1 cursor-pointer">
                               <div className="flex items-center gap-2">
                                 <FileText className="w-4 h-4 text-muted-foreground" />
                                 <div>
@@ -347,16 +266,11 @@ const ApplyInternship = () => {
                                     {resume.scan_status === 'clean'
                                       ? '✓ Verified'
                                       : resume.scan_status === 'pending'
-                                      ? 'Scanning...'
-                                      : '⚠ Rejected'}
+                                      ? '⏳ Scanning...'
+                                      : '⚠ Not approved'}
                                     {' • '}
                                     {new Date(resume.uploaded_at).toLocaleDateString()}
-                                    {resume.is_primary && (
-                                      <>
-                                        {' • '}
-                                        <span className="text-primary">Primary</span>
-                                      </>
-                                    )}
+                                    {resume.is_primary && ' • Primary'}
                                   </p>
                                 </div>
                               </div>
@@ -366,11 +280,7 @@ const ApplyInternship = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handlePreviewResume(resume)}
-                              className="flex-shrink-0"
                               disabled={resume.scan_status !== 'clean'}
-                              title={
-                                resume.scan_status !== 'clean' ? 'Resume must pass security scan first' : 'Preview resume'
-                              }
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -383,15 +293,17 @@ const ApplyInternship = () => {
 
                 {/* Cover Letter */}
                 <div className="space-y-2">
-                  <Label htmlFor="cover_letter">Cover Letter *</Label>
+                  <Label htmlFor="cover_letter" className="text-base">
+                    Cover Letter *
+                  </Label>
                   <Textarea
                     id="cover_letter"
-                    placeholder="Tell the company why you're interested in this position and highlight relevant skills..."
+                    placeholder="Why are you interested in this position? Highlight relevant skills and experiences..."
                     value={formData.cover_letter}
                     onChange={(e) =>
                       setFormData({ ...formData, cover_letter: e.target.value })
                     }
-                    rows={8}
+                    rows={6}
                     required
                     className="resize-none"
                   />
@@ -400,22 +312,23 @@ const ApplyInternship = () => {
                   </p>
                 </div>
 
-                {/* Application Tips */}
-                <div className="bg-muted p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">Application Tips:</h3>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Keep your resume updated and virus-free (we scan all uploads)</li>
-                    <li>• Personalize your cover letter for each position</li>
-                    <li>• Highlight specific skills matching the job description</li>
-                    <li>• Keep it concise but compelling (max 5000 characters)</li>
-                  </ul>
+                {/* Tips */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-700">
+                    <p className="font-medium mb-1">Tips for a great application:</p>
+                    <ul className="space-y-1 text-xs">
+                      <li>• Personalize each cover letter</li>
+                      <li>• Highlight relevant projects and skills</li>
+                      <li>• Show enthusiasm for the company</li>
+                    </ul>
+                  </div>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   disabled={submitting || !selectedResumeId}
-                  className="w-full bg-gradient-primary"
+                  className="w-full bg-gradient-primary text-lg h-11"
                   size="lg"
                 >
                   <Send className="w-5 h-5 mr-2" />
@@ -427,13 +340,7 @@ const ApplyInternship = () => {
         </main>
       </div>
 
-      <ResumeUploader
-        open={showUploadDialog}
-        onOpenChange={setShowUploadDialog}
-        onSuccess={handleResumeUploadSuccess}
-      />
-
-      {/* Resume Preview Modal - IMPROVED */}
+      {/* Resume Preview Modal - ENHANCED */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-7xl w-[95vw] h-[95vh] overflow-hidden flex flex-col p-0">
           <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b sticky top-0 bg-background z-10">

@@ -18,7 +18,9 @@ const router = Router();
 router.get('/discover', verifyToken, discoverResumes);
 
 // Get signed URL for view/download (with rate limiter)
-router.post('/:resume_id/access', verifyToken,  getSignedUrl);
+// Usage: POST /resume/:resume_id/access?access_type=view&application_id=xyz (for company via app)
+// Usage: POST /resume/:resume_id/access?access_type=view (for student/public)
+router.post('/:resume_id/access', verifyToken, getSignedUrl);
 
 // Student: Get resume stats
 router.get('/stats', verifyToken, getResumeStats);

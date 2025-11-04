@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Application } from '../../../models/applications';
 import { Internship } from '../../../models/internships';
 import { StudentProfile } from '../../../models/studnet';
+import mongoose from 'mongoose';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -21,8 +22,8 @@ const withDrawApplication =async (req: AuthRequest, res: Response) => {
     if (!application) {
       return res.status(404).json({ error: 'Application not found' });
     }
-
-    if (application.student_id.toString() !== student._id) {
+    
+    if (!(application.student_id.equals(student._id as mongoose.Types.ObjectId))) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 

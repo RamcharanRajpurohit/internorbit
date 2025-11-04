@@ -8,11 +8,11 @@ import { Response } from 'express';
 import { supabase } from '../../config/supabase';
 import crypto from 'crypto';
 import { Application } from '../../models/applications';
-
+import mongoose from 'mongoose';
 const getSignedUrl = async (req: AuthRequest, res: Response) => {
   try {
     const { resume_id } = req.params;
-    const { access_type = 'view' } = req.query; // 'view' or 'download'
+    const { access_type = 'view', application_id } = req.query; // NEW: Add application_id param
     const user_id = req.user.id;
 
     // Get resume
@@ -30,12 +30,30 @@ const getSignedUrl = async (req: AuthRequest, res: Response) => {
     let isCompanyAccess = false;
 
     if (!isOwnResume && company) {
-      // Check access permissions for company
-      const hasAccess = await checkResumeAccess(resume, company._id, user_id);
-      if (!hasAccess) {
-        return res
-          .status(403)
-          .json({ error: 'You do not have access to this resume' });
+      // If accessing via application, verify company owns the internship
+      if (application_id) {
+        const application = await Application.findById(application_id);
+        if (!application) {
+          return res.status(404).json({ error: 'Application not found' });
+        }
+
+        // Get the internship to check if company owns it
+        const Internship = require('../../models/internships').Internship;
+        const internship = await Internship.findById(application.internship_id);
+        if (!internship || !internship.company_id.equals(company._id)) {
+          return res.status(403).json({ error: 'Not authorized to view this application' });
+        }
+
+        // Verify resume is part of this application
+        if (!application.resume_id.equals(resume._id as mongoose.Types.ObjectId)) {
+          return res.status(400).json({ error: 'Resume does not belong to this application' });
+        }
+      } else {
+        // Check general resume access permissions (public or shared)
+        const hasAccess = await checkResumeAccess(resume, company._id, user_id);
+        if (!hasAccess) {
+          return res.status(403).json({ error: 'You do not have access to this resume' });
+        }
       }
 
       // Check if company has exceeded view limit (abuse prevention)
@@ -46,28 +64,15 @@ const getSignedUrl = async (req: AuthRequest, res: Response) => {
       });
 
       if (recentViews > 50) {
-        return res
-          .status(429)
-          .json({ error: 'Too many access attempts. Please try again later.' });
+        return res.status(429).json({ 
+          error: 'Too many access attempts. Please try again later.' 
+        });
       }
 
       isCompanyAccess = true;
     } else if (!isOwnResume) {
       return res.status(403).json({ error: 'You do not have access to this resume' });
     }
-
-    // Check resume scan status
-    // if (resume.scan_status === 'pending') {
-    //   return res.status(400).json({
-    //     error: 'Resume is still being scanned. Please try again in a moment.',
-    //   });
-    // }
-
-    // if (resume.scan_status === 'rejected') {
-    //   return res.status(403).json({
-    //     error: 'Resume failed security scan and cannot be accessed',
-    //   });
-    // }
 
     // Generate signed URL (5 minutes for company, 1 hour for student)
     const expirationSeconds = isCompanyAccess ? 300 : 3600;
@@ -81,25 +86,23 @@ const getSignedUrl = async (req: AuthRequest, res: Response) => {
 
     const signedUrl = data.signedUrl;
 
-    // Record access log
-   // Record access log (only for company access)
-if (isCompanyAccess) {
-  const log = new ResumeAccessLog({
-    resume_id: resume._id,
-    company_id: company?._id,
-    company_user_id: user_id,
-    access_type,
-    ip_address: req.ip,
-    user_agent: req.get('user-agent'),
-    signed_url_token: crypto
-      .createHash('sha256')
-      .update(signedUrl)
-      .digest('hex'),
-  });
+    // Record access log (only for company access)
+    if (isCompanyAccess) {
+      const log = new ResumeAccessLog({
+        resume_id: resume._id,
+        company_id: company?._id,
+        company_user_id: user_id,
+        access_type,
+        ip_address: req.ip,
+        user_agent: req.get('user-agent'),
+        signed_url_token: crypto
+          .createHash('sha256')
+          .update(signedUrl)
+          .digest('hex'),
+      });
 
-  await log.save();
-}
-
+      await log.save();
+    }
 
     // Update resume stats (only for company access)
     if (isCompanyAccess) {
@@ -146,10 +149,11 @@ async function checkResumeAccess(
   }
 
   // Check if student applied and shared resume via application
+  const Application = require('../../models/applications').Application;
   const studentApplication = await Application.findOne({
+    resume_id: resume._id,
     student_id: resume.student_id,
-    company_id,
-    primary_resume_id: resume._id,
+    // Match by internship's company (will verify in main function)
   });
 
   if (studentApplication) {

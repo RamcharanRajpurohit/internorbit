@@ -15,6 +15,7 @@ const applications_1 = __importDefault(require("./routes/applications"));
 const interactions_1 = __importDefault(require("./routes/interactions"));
 const company_profile_1 = __importDefault(require("./routes/company-profile"));
 const student_profile_1 = __importDefault(require("./routes/student-profile"));
+const resume_1 = __importDefault(require("./routes/resume"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -47,6 +48,7 @@ app.use('/api/applications', applications_1.default);
 app.use('/api/interactions', interactions_1.default);
 app.use('/api/company-profile', company_profile_1.default);
 app.use('/api/student-profile', student_profile_1.default);
+app.use('/api/resume', resume_1.default);
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
@@ -58,6 +60,34 @@ app.use((err, req, res, next) => {
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
+});
+app.get('*', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>CURAJ Lost & Found Server APIs</title>
+          <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                text-align: center;
+                padding: 50px;
+            }
+            h1 {
+                color: #333;
+            }
+          </style>
+      </head>
+      <body>
+          <h1>Lost & Found CURAJ</h1>
+          <p>!! This is a Landing page for Lost & Found Server !!</p>
+          <a href="https://curajlf.vercel.app/">Go to Lost & Found CURAJ</a>
+      </body>
+      </html>
+    `);
 });
 // Start server
 app.listen(PORT, () => {

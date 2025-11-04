@@ -15,6 +15,7 @@ import CompanyProfile from "./pages/Company/CompanyProfile";
 import CompanyInternships from "./pages/Company/CompanyInternships";
 import CreateInternship from "./pages/Company/CreateInternship";
 import CompanyApplicants from "./pages/Company/CompanyApplicants";
+import ApplicationDetail from "./pages/Company/ApplicationDetail";
 
 // NEW PAGES
 import InternshipDetail from "./pages/Student/InternshipDetail";
@@ -56,6 +57,7 @@ const App = () => (
           {/* Student Routes */}
           <Route path="/saved" element={<SavedInternships />} />
           <Route path="/applications" element={<Applications />} />
+          <Route path="/applications/:id" element={<ApplicationDetail />} />
           <Route path="/profile" element={<StudentProfile />} />
 
           {/* Company Routes */}
