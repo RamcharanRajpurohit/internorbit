@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,8 @@ import {
   FileText,
   Mail,
   Phone,
-  Linkedin,
-  Github,
+  Linkedin as LinkedInIcon,
+  Github as GitHubIcon,
   MapPin,
   GraduationCap,
   X,
@@ -25,70 +25,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { applicationAPI } from '@/lib/api';
-import { getAuthToken } from '@/integrations/supabase/client';
-
-const API_URL = import.meta.env.VITE_API_URI;
+import { resumeAPI } from '@/lib/api';
+import { useApplicationDetail } from '@/hooks/useApplications';
 
 const ApplicationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [application, setApplication] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewResume, setPreviewResume] = useState<any>(null);
 
-  useEffect(() => {
-    loadApplication();
-  }, [id]);
-
-  const loadApplication = async () => {
-    try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_URL}/applications/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setApplication(data.application);
-      } else {
-        throw new Error('Failed to fetch');
-      }
-    } catch (error: any) {
-      toast.error('Failed to load application');
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use Redux hook for application state management
+  const {
+    application,
+    isLoading,
+    updateStatus,
+  } = useApplicationDetail(id);
 
   const handleViewResume = async (resume: any) => {
+    if (!application) return;
+
     try {
       setPreviewResume(resume);
       setPreviewLoading(true);
       setPreviewOpen(true);
 
-      const token = await getAuthToken();
-      const resumeId = resume._id;
+      const resumeId = resume._id || resume.id;
+      const applicationId = application._id || application.id;
 
-      const response = await fetch(
-        `${API_URL}/resume/${resumeId}/access?application_id=${application._id}&access_type=view`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const data = await resumeAPI.getApplicationResume(
+        resumeId,
+        applicationId,
+        'view'
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to access resume');
-      }
-
-      const data = await response.json();
       setPreviewUrl(data.signed_url);
     } catch (error: any) {
       toast.error('Failed to load resume');
@@ -99,28 +70,24 @@ const ApplicationDetail = () => {
   };
 
   const handleDownloadResume = async () => {
-    try {
-      const token = await getAuthToken();
-      const resumeId = application.resume_id?._id;
+    if (!application) return;
 
-      const response = await fetch(
-        `${API_URL}/resume/${resumeId}/access?application_id=${application._id}&access_type=download`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+    try {
+      const resumeId = typeof application.resume_id === 'object'
+        ? application.resume_id._id
+        : application.resume_id;
+
+      const data = await resumeAPI.getApplicationResume(
+        resumeId,
+        application._id || application.id,
+        'download'
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to download resume');
-      }
-
-      const data = await response.json();
       const link = document.createElement('a');
       link.href = data.signed_url;
-      link.download = application.resume_id?.file_name || 'resume.pdf';
+      link.download = typeof application.resume_id === 'object'
+        ? application.resume_id.file_name || 'resume.pdf'
+        : 'resume.pdf';
       link.click();
 
       toast.success('Resume downloaded');
@@ -131,8 +98,7 @@ const ApplicationDetail = () => {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await applicationAPI.updateStatus(application._id, newStatus);
-      setApplication({ ...application, status: newStatus });
+      await updateStatus(newStatus);
       toast.success('Status updated');
     } catch (error: any) {
       toast.error('Failed to update status');
@@ -148,7 +114,7 @@ const ApplicationDetail = () => {
     return name.charAt(0).toUpperCase();
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader />
@@ -159,8 +125,18 @@ const ApplicationDetail = () => {
   if (!application) return null;
 
   const student = application.student;
-  const resume = application.resume_id;
-  const internship = application.internship_id;
+
+  // Type helper functions
+  const isResumeObject = (resume: any): resume is { _id: string; file_name: string; file_size?: number; scan_status: 'clean' | 'pending' | 'flagged'; views_count?: number; downloads_count?: number; } => {
+    return typeof resume === 'object' && resume !== null && '_id' in resume;
+  };
+
+  const isInternshipObject = (internship: any): internship is { title: string } => {
+    return typeof internship === 'object' && internship !== null && 'title' in internship;
+  };
+
+  const resume = isResumeObject(application.resume_id) ? application.resume_id : null;
+  const internship = isInternshipObject(application.internship_id) ? application.internship_id : null;
 
   const studentName = student?.full_name || 'Unknown Student';
   const studentEmail = student?.email || 'N/A';
@@ -172,7 +148,7 @@ const ApplicationDetail = () => {
 
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 hover:bg-muted/50 transition-colors">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -276,7 +252,7 @@ const ApplicationDetail = () => {
 
                     {student?.linkedin_url && (
                       <div className="flex items-start gap-2">
-                        <Linkedin className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                        <LinkedInIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">LinkedIn</p>
                           <a
@@ -293,7 +269,7 @@ const ApplicationDetail = () => {
 
                     {student?.github_url && (
                       <div className="flex items-start gap-2">
-                        <Github className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                        <GitHubIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">GitHub</p>
                           <a
@@ -528,7 +504,9 @@ const ApplicationDetail = () => {
             </Button>
             {previewUrl && (
               <Button
-                onClick={handleDownloadResume}
+                onClick={() => {
+                  handleDownloadResume();
+                }}
                 className="gap-2"
               >
                 <Download className="w-4 h-4" />

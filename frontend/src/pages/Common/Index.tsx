@@ -1,102 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import StudentDashboard from "../Student/StudentDashboard";
 import CompanyDashboard from "../Company/CompanyDashboard";
 import Landing from "./Landing";
-import Auth from "./Auth";
-import AuthCallback from "./AuthCallback";
 import { Loader } from "@/components/ui/Loader";
-
-const API_URL = import.meta.env.VITE_API_URI;
 
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const { user, isLoading: authLoading, isAuthenticated, isStudent, isCompany } = useAuth();
 
+  // Debug logging (only log when auth state changes)
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const session = data?.session;
+    console.log('🔍 Index Component Debug:', {
+      user: user ? `${user.email} (${user.role})` : null,
+      isAuthenticated,
+      isStudent,
+      isCompany,
+      authLoading,
+      pathname: location.pathname
+    });
+  }, [user, isAuthenticated, isStudent, isCompany, authLoading]);
 
-        if (session?.user) {
-          setUser(session.user);
-
-          // Fetch profile from backend
-          const response = await fetch(`${API_URL}/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-          });
-
-          if (response.ok) {
-            const { user: profileData } = await response.json();
-            localStorage.setItem('userId', JSON.stringify(profileData._id));
-            setProfile(profileData);
-          } else {
-            console.warn("Profile fetch failed, redirecting to auth");
-            setUser(null);
-            setProfile(null);
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
-        }
-      } catch (err) {
-        console.error('Auth initialization error:', err);
-        setUser(null);
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event);
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user);
-
-          // Fetch profile after sign in
-          try {
-            const response = await fetch(`${API_URL}/auth/me`, {
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-            });
-
-            if (response.ok) {
-              const { user: profileData } = await response.json();
-              localStorage.setItem('userId', JSON.stringify(profileData._id));
-              setProfile(profileData);
-            }
-          } catch (err) {
-            console.error('Profile fetch error:', err);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
-          localStorage.removeItem('userId');
-          navigate('/');
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
+  // Redirect logic moved to App.tsx routing
 
   // Loading state
-  if (loading) {
+  if (authLoading) {
     return (
      <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
@@ -104,29 +34,28 @@ const Index = () => {
     );
   }
 
-  // Special routes (always accessible)
-  if (location.pathname === "/auth/callback") {
-    return <AuthCallback />;
-  }
+  // Special routes - now handled in App.tsx routing
 
-  if (location.pathname === "/auth") {
-    // If user is already logged in and has profile, redirect to dashboard
-    if (user && profile) {
-      navigate("/");
-      return null;
-    }
-    return <Auth />;
-  }
-
-  // Authenticated user with profile - show dashboard
-  if (user && profile) {
-    if (profile.role === "student") {
+  // Authenticated user - show dashboard based on role
+  if (isAuthenticated && user) {
+    console.log('✅ User is authenticated, showing dashboard');
+    if (isStudent) {
       return <StudentDashboard />;
     }
-    return <CompanyDashboard />;
+    if (isCompany) {
+      return <CompanyDashboard />;
+    }
+  } else {
+    console.log('❌ User is not authenticated or user data missing', {
+      isAuthenticated,
+      user: !!user,
+      isStudent,
+      isCompany
+    });
   }
 
-  // No user or no profile - show landing page
+  // No user or not authenticated - show landing page
+  console.log('🏠 Showing landing page (not authenticated)');
   return <Landing />;
 };
 

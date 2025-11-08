@@ -1,65 +1,42 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
 import { Plus, Briefcase, Users, TrendingUp, Eye } from "lucide-react";
-import { internshipAPI } from "@/lib/api";
-import { getSession } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompanyInternships } from "@/hooks/useInternships";
 import { Loader } from "@/components/ui/Loader";
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalInternships: 0,
-    totalApplications: 0,
-    totalViews: 0,
-  });
+
+  // Use Redux hooks for state management
+  const { isAuthenticated, isCompany } = useAuth();
+  const { companyInternships, isLoading, refetch } = useCompanyInternships();
 
   useEffect(() => {
-    checkAuth();
-    loadStats();
-  }, []);
+    if (!isAuthenticated || !isCompany) {
+      navigate("/auth");
+      return;
+    }
+  }, [isAuthenticated, isCompany, navigate]);
 
-  const checkAuth = async () => {
-  const session = await getSession();
-  if (!session) {
-    navigate("/auth");
-    return;
-  }
-};
-
-
-  const loadStats = async () => {
-  try {
-    
-    const response = await internshipAPI.getAllByCompanyId({
-      page: 1,
-      limit: 1000, // Get all internships
-    });
-
-    const internships = response.internships || [];
-    const totalInternships = internships.length;
-    const totalApplications = internships.reduce(
-      (sum, i) => sum + (i.applications_count || 0),
+  // Calculate stats from internships
+  const stats = {
+    totalInternships: companyInternships.length,
+    totalApplications: companyInternships.reduce(
+      (sum, i) => sum + (i.application_count || 0),
       0
-    );
-    const totalViews = internships.reduce(
+    ),
+    totalViews: companyInternships.reduce(
       (sum, i) => sum + (i.views_count || 0),
       0
-    );
+    ),
+  };
 
-    setStats({ totalInternships, totalApplications, totalViews });
-  } catch (error: any) {
-    toast.error("Failed to load stats");
-  } finally {
-    setLoading(false);
-  }
-};
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center ">
         <Loader/>

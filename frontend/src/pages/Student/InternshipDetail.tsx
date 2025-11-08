@@ -18,6 +18,7 @@ import {
   Heart,
   Send,
   ArrowLeft,
+  Briefcase,
 } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
 
@@ -122,17 +123,17 @@ const InternshipDetail = () => {
       <Navigation role={userRole} />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <Button
             variant="ghost"
             onClick={() => navigate(-1)}
-            className="mb-4"
+            className="mb-6 hover:bg-muted/50 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
-          <Card className="shadow-elevated">
+          <Card className="shadow-card overflow-hidden">
             <CardHeader className="border-b">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
@@ -140,18 +141,19 @@ const InternshipDetail = () => {
                     <img
                       src={companyProfile.logo_url}
                       alt={companyProfile.company_name}
-                      className="w-16 h-16 rounded-full object-cover"
+                      className="w-16 h-16 rounded-xl object-cover ring-2 ring-border shadow-sm"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gradient-secondary flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-secondary flex items-center justify-center ring-2 ring-border shadow-sm">
                       <Building className="w-8 h-8 text-secondary-foreground" />
                     </div>
                   )}
                   <div>
-                    <CardTitle className="text-3xl mb-2">
+                    <CardTitle className="text-3xl mb-2 bg-gradient-primary bg-clip-text text-transparent">
                       {internship.title}
                     </CardTitle>
-                    <p className="text-lg text-muted-foreground">
+                    <p className="text-lg text-muted-foreground flex items-center gap-2">
+                      <Building className="w-4 h-4" />
                       {companyProfile?.company_name || "Company"}
                     </p>
                   </div>
@@ -204,29 +206,29 @@ const InternshipDetail = () => {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-4 mb-8 p-4 bg-muted rounded-lg">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-2xl font-bold">
+              <div className="grid grid-cols-3 gap-4 mb-8 p-6 bg-gradient-card rounded-xl border border-border">
+                <div className="text-center p-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                       {internship.applications_count || 0}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">Applications</p>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-2xl font-bold">
+                <div className="text-center p-4 border-l border-r border-border">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Briefcase className="w-5 h-5 text-primary" />
+                    <span className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                       {internship.positions_available || 1}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">Positions</p>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-2xl font-bold">
+                <div className="text-center p-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <span className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                       {internship.application_deadline
                         ? Math.ceil(
                             (new Date(internship.application_deadline).getTime() -

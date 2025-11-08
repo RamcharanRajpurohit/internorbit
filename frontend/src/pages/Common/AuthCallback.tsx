@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useDispatch } from 'react-redux';
+import { checkAuth } from '@/store/slices/authSlice';
+import { AppDispatch } from '@/store';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -9,10 +12,23 @@ const API_URL = import.meta.env.VITE_API_URI;
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isProcessedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple executions using both ref and sessionStorage
+    if (isProcessedRef.current) {
+      console.log('⚠️ AuthCallback already processed (ref), skipping');
+      return;
+    }
+
+    if (sessionStorage.getItem('authCallbackProcessed')) {
+      console.log('⚠️ AuthCallback already processed (sessionStorage), skipping');
+      return;
+    }
+
     const handleCallback = async () => {
       try {
         // Get the session from URL callback
@@ -51,13 +67,24 @@ const AuthCallback = () => {
         // Profile exists - user is already set up
         const profileData = await profileCheckResponse.json();
         console.log('Profile found:', profileData.profile);
-        
+
+        // Trigger Redux auth state update
+        console.log('🔄 Triggering Redux auth check...');
+        await dispatch(checkAuth(undefined)).unwrap();
+        console.log('✅ Redux auth check completed');
+
+        // Mark as processed using ref and sessionStorage to prevent re-execution
+        isProcessedRef.current = true;
+        sessionStorage.setItem('authCallbackProcessed', 'true');
+
         toast.success('Welcome back!');
 
         // Redirect to home
         setTimeout(() => {
-          navigate('/');
-        }, 1000);
+          console.log('🏠 Redirecting to dashboard...');
+          sessionStorage.removeItem('authCallbackProcessed'); // Clear flag for next login
+          navigate('/', { replace: true });
+        }, 1500);
 
       } catch (err: any) {
         console.error('Callback error:', err);
@@ -70,6 +97,8 @@ const AuthCallback = () => {
         }, 3000);
       } finally {
         setLoading(false);
+        isProcessedRef.current = true;
+        sessionStorage.setItem('authCallbackProcessed', 'true');
       }
     };
 

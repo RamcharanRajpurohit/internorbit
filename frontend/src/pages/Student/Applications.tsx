@@ -1,74 +1,90 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { applicationAPI } from "@/lib/api";
+import { useStudentApplications } from "@/hooks/useApplications";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
-import { Briefcase, Calendar, MapPin, Trash2 } from "lucide-react";
+import {
+  Calendar, MapPin, Trash2, Building, Clock,
+  Eye, CheckCircle, XCircle, AlertCircle,
+  FileText, DollarSign
+} from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader } from "@/components/ui/Loader";
 
 const Applications = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [applications, setApplications] = useState<any[]>([]);
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
 
+  // Use our new state management hooks
+  const { isAuthenticated, isStudent } = useAuth();
+  const {
+    studentApplications: applications,
+    isLoading,
+    withdrawApplication: withdraw,
+    pagination,
+  } = useStudentApplications(true);
+
+  // Redirect if not authenticated or not a student
   useEffect(() => {
-    checkAuth();
-    loadApplications();
-  }, [status, page]);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) navigate("/auth");
-  };
-
-  const loadApplications = async () => {
-    try {
-      setLoading(true);
-      const response = await applicationAPI.getStudentApplications({
-        page,
-        limit: 10,
-        status: status !== "all" ? status : undefined,
-      });
-      setApplications(response.applications || []);
-      setTotal(response.pagination?.total || 0);
-    } catch (error: any) {
-      console.error("Error loading applications:", error);
-      toast.error("Failed to load applications");
-    } finally {
-      setLoading(false);
+    if (!isAuthenticated || !isStudent) {
+      navigate("/auth");
     }
-  };
+  }, [isAuthenticated, isStudent, navigate]);
+
+  // Fetch applications when status or page changes
+  const applicationsData = applications.filter(app =>
+    status === "all" || app.status === status
+  );
+
+  const total = pagination?.total || 0;
 
   const handleWithdraw = async (applicationId: string) => {
     try {
-      await applicationAPI.withdraw(applicationId);
-      setApplications(applications.filter(a => a._id !== applicationId));
+      await withdraw(applicationId);
       toast.success("Application withdrawn");
     } catch (error: any) {
       toast.error("Failed to withdraw application");
     }
   };
 
-  const getStatusColor = (appStatus: string) => {
-    const colors: Record<string, string> = {
-      pending: "bg-yellow-500",
-      reviewed: "bg-blue-500",
-      shortlisted: "bg-purple-500",
-      accepted: "bg-green-500",
-      rejected: "bg-red-500",
+  const getStatusInfo = (appStatus: string) => {
+    const statusInfo: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
+      pending: {
+        color: "bg-yellow-500",
+        icon: <Clock className="w-4 h-4" />,
+        label: "Pending"
+      },
+      reviewed: {
+        color: "bg-blue-500",
+        icon: <Eye className="w-4 h-4" />,
+        label: "Reviewed"
+      },
+      shortlisted: {
+        color: "bg-purple-500",
+        icon: <AlertCircle className="w-4 h-4" />,
+        label: "Shortlisted"
+      },
+      accepted: {
+        color: "bg-green-500",
+        icon: <CheckCircle className="w-4 h-4" />,
+        label: "Accepted"
+      },
+      rejected: {
+        color: "bg-red-500",
+        icon: <XCircle className="w-4 h-4" />,
+        label: "Rejected"
+      },
     };
-    return colors[appStatus] || "bg-gray-500";
+    return statusInfo[appStatus] || { color: "bg-gray-500", icon: <Clock className="w-4 h-4" />, label: "Unknown" };
   };
 
-  if (loading && page === 1) {
+  
+  if (isLoading && page === 1) {
     return (
       <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
@@ -81,8 +97,8 @@ const Applications = () => {
       <Navigation role="student" />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8 animate-slide-up">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               My Applications
             </h1>
@@ -91,8 +107,8 @@ const Applications = () => {
             </p>
           </div>
 
-          <Tabs value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} className="mb-6">
-            <TabsList>
+          <Tabs value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} className="mb-8">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
@@ -102,130 +118,220 @@ const Applications = () => {
             </TabsList>
           </Tabs>
 
-          {applications.length === 0 ? (
-            <Card className="text-center p-12">
-              <Briefcase className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-2xl font-bold mb-2">No applications yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Start swiping through internships and apply to positions you're interested in
+          {applicationsData.length === 0 ? (
+            <div className="text-center animate-scale-in py-20">
+              <div className="text-6xl mb-4">📋</div>
+              <h2 className="text-2xl font-bold mb-2">No applications yet</h2>
+              <p className="text-muted-foreground mb-4">
+                Start browsing internships and apply to positions you're interested in
               </p>
               <Button onClick={() => navigate("/")} className="bg-gradient-primary">
                 Discover Internships
               </Button>
-            </Card>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {applications.map((app) => {
-                const internship = app.internship_id;
-                const company = internship.company_id;
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {applicationsData.map((app) => {
+                const internship = typeof app.internship_id === 'object' ? app.internship_id : null;
+                const company = internship?.company_id && typeof internship.company_id === 'object' ? internship.company_id : null;
+                const statusInfo = getStatusInfo(app.status);
 
-                return (
-                  <Card key={app._id} className="hover:shadow-elevated transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            {company?.logo_url ? (
-                              <img
-                                src={company.logo_url}
-                                alt={company.company_name}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-secondary flex items-center justify-center">
-                                <span className="text-white text-sm font-bold">
-                                  {company?.company_name?.[0]}
-                                </span>
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                {company?.company_name}
+                if (!internship) {
+                  return (
+                    <Card key={app._id} className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card">
+                      <CardContent className="p-0">
+                        <div className="p-4 border-b border-border">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-bold text-lg line-clamp-2 leading-tight">Internship Unavailable</h3>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Applied {new Date(app.applied_at).toLocaleDateString()}
                               </p>
                             </div>
+                            <Badge className={`${statusInfo.color} text-white flex items-center gap-1`}>
+                              {statusInfo.icon}
+                              <span className="text-xs">{statusInfo.label}</span>
+                            </Badge>
                           </div>
-                          <CardTitle className="text-2xl">{internship.title}</CardTitle>
-                          <CardDescription className="mt-1">
-                            Applied {new Date(app.applied_at).toLocaleDateString()}
-                          </CardDescription>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={`${getStatusColor(app.status)} text-white`}>
-                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="flex flex-wrap gap-4 mb-4">
-                        {internship.location && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4" />
-                            {internship.location}
-                          </div>
-                        )}
-                        {internship.duration_months && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            {internship.duration_months} months
-                          </div>
-                        )}
-                      </div>
-
-                      {app.cover_letter && (
-                        <div className="mb-4 p-3 bg-muted rounded-lg">
-                          <p className="text-sm font-semibold mb-1">Cover Letter:</p>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {app.cover_letter}
+                        <div className="p-4">
+                          <p className="text-sm text-muted-foreground">
+                            Internship details are no longer available
                           </p>
                         </div>
-                      )}
+                      </CardContent>
+                    </Card>
+                  );
+                }
 
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          onClick={() => navigate(`/internship/${internship._id}`)}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          View Position
-                        </Button>
-                        {app.status === "pending" && (
-                          <Button
-                            onClick={() => handleWithdraw(app._id)}
-                            variant="outline"
-                            className="flex-1"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Withdraw
-                          </Button>
+                return (
+                  <Card
+                    key={app._id}
+                    className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card"
+                  >
+                    <CardContent className="p-0">
+                      {/* Company Header */}
+                      <div className="p-4 border-b border-border">
+                        <div className="flex items-center gap-3 mb-3">
+                          {company?.logo_url ? (
+                            <img
+                              src={company.logo_url}
+                              alt={company.company_name}
+                              className="w-10 h-10 rounded-full object-cover ring-2 ring-border"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-secondary flex items-center justify-center ring-2 ring-border">
+                              <Building className="w-5 h-5 text-secondary-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm truncate">{company?.company_name || 'Company'}</h3>
+                            <p className="text-xs text-muted-foreground">
+                              Applied {new Date(app.applied_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge className={`${statusInfo.color} text-white flex items-center gap-1`}>
+                            {statusInfo.icon}
+                            <span className="text-xs">{statusInfo.label}</span>
+                          </Badge>
+                        </div>
+                        <h2 className="font-bold text-lg line-clamp-2 leading-tight">
+                          {internship.title}
+                        </h2>
+                      </div>
+
+                      {/* Application Details */}
+                      <div className="p-4">
+                        {/* Quick Info Badges */}
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {internship.location && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {internship.location}
+                            </Badge>
+                          )}
+                          {internship.is_remote && (
+                            <Badge variant="secondary" className="text-xs">Remote</Badge>
+                          )}
+                          {internship.stipend_min && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <DollarSign className="w-3 h-3" />
+                              ${internship.stipend_min}-{internship.stipend_max || internship.stipend_min}
+                            </Badge>
+                          )}
+                          {internship.duration_months && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {internship.duration_months}m
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Cover Letter Preview */}
+                        {app.cover_letter && (
+                          <div className="mb-4 p-3 bg-muted rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <FileText className="w-3 h-3 text-muted-foreground" />
+                              <p className="text-xs font-semibold">Cover Letter</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {app.cover_letter}
+                            </p>
+                          </div>
                         )}
+
+                        {/* Skills Preview */}
+                        {internship.skills_required && internship.skills_required.length > 0 && (
+                          <div className="mb-4">
+                            <div className="flex flex-wrap gap-1">
+                              {internship.skills_required.slice(0, 3).map((skill: string, skillIndex: number) => (
+                                <Badge key={skillIndex} variant="outline" className="text-xs">
+                                  {skill}
+                                </Badge>
+                              ))}
+                              {internship.skills_required.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{internship.skills_required.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 mt-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/internship/${internship._id}`);
+                            }}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          {app.status === "pending" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleWithdraw(app._id);
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Application Status Footer */}
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Application #{app._id.slice(-6).toUpperCase()}</span>
+                            <div className="flex items-center gap-1">
+                              {statusInfo.icon}
+                              <span>{statusInfo.label}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
+            </div>
+          )}
 
-              {/* Pagination */}
-              <div className="flex justify-center gap-2 mt-8">
-                <Button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  variant="outline"
-                >
-                  Previous
-                </Button>
-                <span className="flex items-center px-4">
-                  Page {page} of {Math.ceil(total / 10)}
-                </span>
-                <Button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page >= Math.ceil(total / 10)}
-                  variant="outline"
-                >
-                  Next
-                </Button>
-              </div>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex justify-center py-8">
+              <Loader />
+            </div>
+          )}
+
+          {/* Pagination */}
+          {applicationsData.length > 0 && (
+            <div className="flex justify-center gap-2 mt-8">
+              <Button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                variant="outline"
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-4">
+                Page {page} of {Math.ceil(total / 10)}
+              </span>
+              <Button
+                onClick={() => setPage(page + 1)}
+                disabled={page >= Math.ceil(total / 10)}
+                variant="outline"
+              >
+                Next
+              </Button>
             </div>
           )}
         </div>

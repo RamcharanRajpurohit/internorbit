@@ -1,45 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/common/Navigation";
-import { toast } from "sonner";
-import { applicationAPI } from "@/lib/api";
-import { getSession } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Clock, XCircle, Briefcase } from "lucide-react";
+import { CheckCircle, Clock, XCircle, Briefcase, User, Calendar, MapPin, Mail, Eye } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
-
+import { useAuth } from "@/hooks/useAuth";
+import { useCompanyApplications } from "@/hooks/useApplications";
+import { Button } from "@/components/ui/button";
 const CompanyApplicants = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [applications, setApplications] = useState<any[]>([]);
   const [filterStatus, setFilterStatus] = useState("all");
 
+  // Use our new state management hooks
+  const { isAuthenticated, isCompany } = useAuth();
+  const {
+    companyApplications: applications,
+    isLoading,
+  } = useCompanyApplications(true);
+
+  // Redirect if not authenticated or not a company
   useEffect(() => {
-    loadApplications();
-  }, []);
-
-  const loadApplications = async () => {
-    try {
-      const session = await getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      const response = await applicationAPI.getCompanyApplications({
-        page: 1,
-        limit: 100,
-      });
-
-      setApplications(response.applications || []);
-    } catch (error: any) {
-      toast.error("Failed to load applications");
-    } finally {
-      setLoading(false);
+    if (!isAuthenticated || !isCompany) {
+      navigate("/auth");
     }
-  };
+  }, [isAuthenticated, isCompany, navigate]);
 
   const filteredApplications =
     filterStatus === "all"
@@ -85,7 +71,7 @@ const CompanyApplicants = () => {
     return name.charAt(0).toUpperCase();
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader />
@@ -94,52 +80,51 @@ const CompanyApplicants = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="company" />
 
-      <main className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="max-w-6xl mx-auto">
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-              Applications
+          <div className="mb-8 animate-slide-up">
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+              Job Applicants
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {applications.length} total application{applications.length !== 1 ? 's' : ''}
             </p>
           </div>
 
           {/* Filter Tabs */}
-          <Card className="p-3 sm:p-4 mb-6 bg-white shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <span className="text-sm font-medium text-gray-700">Filter:</span>
-              <Tabs
-                value={filterStatus}
-                onValueChange={setFilterStatus}
-                className="w-full sm:w-auto"
-              >
-                <TabsList className="grid grid-cols-3 sm:flex w-full sm:w-auto gap-1">
-                  <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
-                  <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending</TabsTrigger>
-                  <TabsTrigger value="reviewed" className="text-xs sm:text-sm">Reviewed</TabsTrigger>
-                  <TabsTrigger value="shortlisted" className="text-xs sm:text-sm">Shortlisted</TabsTrigger>
-                  <TabsTrigger value="accepted" className="text-xs sm:text-sm">Accepted</TabsTrigger>
-                  <TabsTrigger value="rejected" className="text-xs sm:text-sm">Rejected</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </Card>
+          <div className="mb-8">
+            <Tabs
+              value={filterStatus}
+              onValueChange={setFilterStatus}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 rounded-xl">
+                <TabsTrigger value="all" className="rounded-lg">All</TabsTrigger>
+                <TabsTrigger value="pending" className="rounded-lg">Pending</TabsTrigger>
+                <TabsTrigger value="reviewed" className="rounded-lg">Reviewed</TabsTrigger>
+                <TabsTrigger value="shortlisted" className="rounded-lg">Shortlisted</TabsTrigger>
+                <TabsTrigger value="accepted" className="rounded-lg">Accepted</TabsTrigger>
+                <TabsTrigger value="rejected" className="rounded-lg">Rejected</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
-          {/* Applications List */}
+          {/* Applications Grid */}
           {filteredApplications.length === 0 ? (
-            <Card className="p-8 sm:p-12 text-center bg-white shadow-sm">
-              <p className="text-lg sm:text-xl text-gray-500">
-                No applications found
+            <div className="text-center animate-scale-in py-20">
+              <div className="text-6xl mb-4">📋</div>
+              <h2 className="text-2xl font-bold mb-2">No applications found</h2>
+              <p className="text-muted-foreground">
+                No applications match the current filter
               </p>
-            </Card>
+            </div>
           ) : (
-            <div className="space-y-3 sm:space-y-4">
-              {filteredApplications.map((app, idx) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredApplications.map((app) => {
                 const student = app.student;
                 const studentName = student?.full_name || "Unknown Student";
                 const studentEmail = student?.email || "N/A";
@@ -148,76 +133,115 @@ const CompanyApplicants = () => {
                 return (
                   <Card
                     key={app._id}
-                    className="p-4 sm:p-6 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200"
-                    onClick={() => navigate(`/applications/${app._id}`)}
+                    className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card"
+                    onClick={() => navigate(`/company/applications/${app._id}`)}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                      {/* Left Side - Student Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-3">
-                          {student?.avatar_url ? (
-                            <img
-                              src={student.avatar_url}
-                              alt={studentName}
-                              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-                              <span className="text-white font-bold text-sm sm:text-lg">
-                                {getInitials(studentName)}
-                              </span>
+                    <CardContent className="p-0">
+                      {/* Student Header */}
+                      <div className="p-4 border-b border-border">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            {student?.avatar_url ? (
+                              <img
+                                src={student.avatar_url}
+                                alt={studentName}
+                                className="w-10 h-10 rounded-xl object-cover ring-2 ring-border shadow-sm"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center ring-2 ring-border shadow-sm">
+                                <User className="w-5 h-5 text-primary-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm truncate">{studentName}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                Applied {new Date(app.applied_at).toLocaleDateString()}
+                              </p>
                             </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
-                              {studentName}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 truncate">
-                              {studentEmail}
-                            </p>
                           </div>
+                          <Badge
+                            className={`${getStatusColor(app.status)} flex items-center gap-1 text-xs`}
+                          >
+                            {getStatusIcon(app.status)}
+                            <span className="capitalize">{app.status}</span>
+                          </Badge>
+                        </div>
+                        <h2 className="font-bold text-lg line-clamp-2 leading-tight">
+                          {typeof app.internship_id === 'object' && app.internship_id?.title || "Position Applied"}
+                        </h2>
+                      </div>
+
+                      {/* Applicant Details */}
+                      <div className="p-4">
+                        {/* Contact Info */}
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {studentEmail}
+                          </Badge>
+                          {studentUniversity !== "N/A" && (
+                            <Badge variant="outline" className="text-xs">
+                              {studentUniversity}
+                            </Badge>
+                          )}
                         </div>
 
-                        <div className="space-y-1.5 sm:space-y-2 mb-3">
-                          <div className="flex items-start gap-2">
-                            <Briefcase className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs sm:text-sm text-gray-700">
-                              <span className="font-medium">Position:</span>{" "}
-                              {app.internship_id?.title || "N/A"}
-                            </p>
-                          </div>
-                          <p className="text-xs sm:text-sm text-gray-600 pl-6">
-                            <span className="font-medium">University:</span> {studentUniversity}
-                          </p>
+                        {/* Education Info */}
+                        <div className="space-y-2 mb-4">
                           {student?.degree && (
-                            <p className="text-xs sm:text-sm text-gray-600 pl-6">
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
                               <span className="font-medium">Degree:</span> {student.degree}
                             </p>
                           )}
+                          {student?.university && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                              <MapPin className="w-3 h-3" />
+                              {student.university}
+                            </p>
+                          )}
                         </div>
 
-                        <p className="text-xs text-gray-500">
-                          Applied on{" "}
-                          {new Date(app.applied_at).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
+                        {/* Cover Letter Preview */}
+                        {app.cover_letter && (
+                          <div className="mb-4 p-3 bg-muted rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Briefcase className="w-3 h-3 text-muted-foreground" />
+                              <p className="text-xs font-semibold">Cover Letter</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {app.cover_letter}
+                            </p>
+                          </div>
+                        )}
 
-                      {/* Right Side - Status Badge */}
-                      <div className="flex sm:flex-col items-center sm:items-end gap-3">
-                        <Badge
-                          className={`${getStatusColor(app.status)} flex items-center gap-1.5 px-3 py-1`}
-                        >
-                          {getStatusIcon(app.status)}
-                          <span className="capitalize text-xs sm:text-sm">
-                            {app.status}
-                          </span>
-                        </Badge>
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 mt-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/company/applications/${app._id}`);
+                            }}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View Profile
+                          </Button>
+                        </div>
+
+                        {/* Application Footer */}
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Application #{app._id.slice(-6).toUpperCase()}</span>
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(app.status)}
+                              <span>{app.status}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </CardContent>
                   </Card>
                 );
               })}

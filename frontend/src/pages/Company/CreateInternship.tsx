@@ -8,17 +8,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
 import { Save } from "lucide-react";
-import { internshipAPI } from "@/lib/api";
-import { getSession } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useInternships } from "@/hooks/useInternships";
 import { Loader } from "@/components/ui/Loader";
 
 
 const CreateInternship = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+
+  // Use our new state management hooks
+  const { isAuthenticated, isCompany } = useAuth();
+  const {
+    currentInternship,
+    isLoading,
+    fetchInternshipById,
+    createInternship,
+    updateInternship,
+  } = useInternships();
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    requirements: string;
+    responsibilities: string;
+    location: string;
+    is_remote: boolean;
+    stipend_min: string;
+    stipend_max: string;
+    duration_months: string;
+    skills_required: string;
+    positions_available: string;
+    application_deadline: string;
+    status: "active" | "closed" | "draft";
+  }>({
     title: "",
     description: "",
     requirements: "",
@@ -31,46 +54,48 @@ const CreateInternship = () => {
     skills_required: "",
     positions_available: "1",
     application_deadline: "",
-    status: "active" as const,
+    status: "active",
   });
+
+  // Redirect if not authenticated or not a company
+  useEffect(() => {
+    if (!isAuthenticated || !isCompany) {
+      navigate("/auth");
+    }
+  }, [isAuthenticated, isCompany, navigate]);
 
   useEffect(() => {
     if (id) {
-      loadInternship(id);
+      fetchInternshipById(id);
     }
-  }, [id]);
+  }, [id, fetchInternshipById]);
 
- const loadInternship = async (internshipId: string) => {
-  try {
-    // CHANGED: Use backend API instead of supabase
-    const response = await internshipAPI.getById(internshipId);
-    const data = response.internship;
-
-    if (data) {
+  // Update form data when currentInternship changes
+  useEffect(() => {
+    if (currentInternship && id) {
       setFormData({
-        title: data.title || "",
-        description: data.description || "",
-        requirements: data.requirements || "",
-        responsibilities: data.responsibilities || "",
-        location: data.location || "",
-        is_remote: data.is_remote || false,
-        stipend_min: data.stipend_min?.toString() || "",
-        stipend_max: data.stipend_max?.toString() || "",
-        duration_months: data.duration_months?.toString() || "",
-        skills_required: data.skills_required?.join(", ") || "",
-        positions_available: data.positions_available?.toString() || "1",
-        application_deadline: data.application_deadline || "",
-        status: (data.status as "active") || "active",
+        title: currentInternship.title || "",
+        description: currentInternship.description || "",
+        requirements: Array.isArray(currentInternship.requirements)
+          ? currentInternship.requirements.join(", ")
+          : (currentInternship.requirements || ""),
+        responsibilities: Array.isArray(currentInternship.responsibilities)
+          ? currentInternship.responsibilities.join(", ")
+          : (currentInternship.responsibilities || ""),
+        location: currentInternship.location || "",
+        is_remote: currentInternship.is_remote || false,
+        stipend_min: currentInternship.stipend_min?.toString() || "",
+        stipend_max: currentInternship.stipend_max?.toString() || "",
+        duration_months: currentInternship.duration_months?.toString() || "",
+        skills_required: currentInternship.skills_required?.join(", ") || "",
+        positions_available: currentInternship.positions_available?.toString() || "1",
+        application_deadline: currentInternship.application_deadline || "",
+        status: currentInternship.status || "active",
       });
     }
-  } catch (error: any) {
-    toast.error("Failed to load internship");
-    navigate("/company/internships");
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [currentInternship, id]);
 
+ 
 const handleSave = async () => {
   if (!formData.title || !formData.description) {
     toast.error("Please fill in all required fields");
@@ -87,8 +112,14 @@ const handleSave = async () => {
     const internshipData = {
       title: formData.title,
       description: formData.description,
-      requirements: formData.requirements,
-      responsibilities: formData.responsibilities,
+      requirements: formData.requirements
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s),
+      responsibilities: formData.responsibilities
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s),
       location: formData.location,
       is_remote: formData.is_remote,
       stipend_min: formData.stipend_min ? parseInt(formData.stipend_min) : null,
@@ -103,12 +134,10 @@ const handleSave = async () => {
     };
 
     if (id) {
-      // CHANGED: Use backend API instead of supabase
-      await internshipAPI.update(id, internshipData);
+      await updateInternship(id, internshipData);
       toast.success("Internship updated successfully!");
     } else {
-      // CHANGED: Use backend API instead of supabase
-      await internshipAPI.create(internshipData);
+      await createInternship(internshipData);
       toast.success("Internship created successfully!");
     }
 
@@ -120,7 +149,7 @@ const handleSave = async () => {
   }
 };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
@@ -187,10 +216,10 @@ const handleSave = async () => {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="responsibilities">Responsibilities</Label>
+                  <Label htmlFor="responsibilities">Responsibilities (comma-separated)</Label>
                   <Textarea
                     id="responsibilities"
-                    placeholder="What will the intern be doing?"
+                    placeholder="e.g., Write code, Attend meetings, Prepare reports"
                     value={formData.responsibilities}
                     onChange={(e) =>
                       setFormData({
@@ -202,10 +231,10 @@ const handleSave = async () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="requirements">Requirements</Label>
+                  <Label htmlFor="requirements">Requirements (comma-separated)</Label>
                   <Textarea
                     id="requirements"
-                    placeholder="What should the intern know/have?"
+                    placeholder="e.g., JavaScript knowledge, Team player, Problem solver"
                     value={formData.requirements}
                     onChange={(e) =>
                       setFormData({ ...formData, requirements: e.target.value })
@@ -287,7 +316,7 @@ const handleSave = async () => {
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="deadline">Application Deadline</Label>
                   <Input
@@ -301,6 +330,24 @@ const handleSave = async () => {
                       })
                     }
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        status: e.target.value as "active" | "closed" | "draft",
+                      })
+                    }
+                    className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="active">Active</option>
+                    <option value="draft">Draft</option>
+                    <option value="closed">Closed</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="remote">Remote</Label>

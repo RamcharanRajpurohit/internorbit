@@ -1,0 +1,210 @@
+import { useEffect, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
+import {
+  fetchStudentApplications,
+  fetchCompanyApplications,
+  createApplication,
+  updateApplicationStatus,
+  withdrawApplication,
+  fetchApplicationById,
+  clearApplicationError,
+} from '@/store/slices/applicationSlice';
+
+import { useAuth } from './useAuth';
+export const useStudentApplications = (autoFetch = true) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated, isStudent } = useAuth();
+
+  const {
+    studentApplications,
+    currentApplication,
+    isLoading,
+    isSubmitting,
+    isUpdating,
+    error,
+    pagination,
+  } = useSelector((state: RootState) => state.application);
+
+  useEffect(() => {
+    if (autoFetch && isAuthenticated && isStudent && !studentApplications.length) {
+      dispatch(fetchStudentApplications({}));
+    }
+  }, [dispatch, autoFetch, isAuthenticated, isStudent, studentApplications.length]);
+
+  const handleFetchApplications = useCallback(
+    async (params?: { page?: number; limit?: number; status?: string }) => {
+      try {
+        return await dispatch(fetchStudentApplications(params)).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  const handleCreateApplication = useCallback(
+    async (applicationData: {
+      internship_id: string;
+      resume_id: string;
+      cover_letter: string;
+    }) => {
+      try {
+        return await dispatch(createApplication(applicationData)).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  const handleWithdrawApplication = useCallback(
+    async (applicationId: string) => {
+      try {
+        await dispatch(withdrawApplication(applicationId)).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  const clearError = useCallback(() => {
+    dispatch(clearApplicationError());
+  }, [dispatch]);
+
+  return {
+    studentApplications,
+    currentApplication,
+    isLoading,
+    isSubmitting,
+    isUpdating,
+    error,
+    pagination: pagination.student,
+    fetchApplications: handleFetchApplications,
+    createApplication: handleCreateApplication,
+    withdrawApplication: handleWithdrawApplication,
+    clearError,
+    refetch: () => dispatch(fetchStudentApplications({})),
+  };
+};
+
+export const useCompanyApplications = (autoFetch = true) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated, isCompany } = useAuth();
+
+  const {
+    companyApplications,
+    isLoading,
+    isUpdating,
+    error,
+    pagination,
+  } = useSelector((state: RootState) => state.application);
+
+  useEffect(() => {
+    if (autoFetch && isAuthenticated && isCompany && !companyApplications.length) {
+      dispatch(fetchCompanyApplications({}));
+    }
+  }, [dispatch, autoFetch, isAuthenticated, isCompany, companyApplications.length]);
+
+  const handleFetchApplications = useCallback(
+    async (params?: { page?: number; limit?: number; status?: string }) => {
+      try {
+        return await dispatch(fetchCompanyApplications(params)).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  const handleUpdateStatus = useCallback(
+    async (applicationId: string, status: string) => {
+      try {
+        return await dispatch(updateApplicationStatus({ id: applicationId, status })).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  const clearError = useCallback(() => {
+    dispatch(clearApplicationError());
+  }, [dispatch]);
+
+  return {
+    companyApplications,
+    isLoading,
+    isUpdating,
+    error,
+    pagination: pagination.company,
+    fetchApplications: handleFetchApplications,
+    updateStatus: handleUpdateStatus,
+    clearError,
+    refetch: () => dispatch(fetchCompanyApplications({})),
+  };
+};
+
+export const useApplicationDetail = (id?: string) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated } = useAuth();
+
+  const {
+    currentApplication,
+    isLoading,
+    isUpdating,
+    error,
+  } = useSelector((state: RootState) => state.application);
+
+  useEffect(() => {
+    if (id && isAuthenticated && (!currentApplication || currentApplication.id !== id)) {
+      dispatch(fetchApplicationById(id));
+    }
+  }, [dispatch, id, isAuthenticated, currentApplication]);
+
+  const handleFetchApplication = useCallback(
+    async (applicationId: string) => {
+      try {
+        return await dispatch(fetchApplicationById(applicationId)).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  const handleUpdateStatus = useCallback(
+    async (status: string) => {
+      if (!currentApplication) {
+        throw new Error('No application loaded');
+      }
+      try {
+        return await dispatch(
+          updateApplicationStatus({
+            id: currentApplication._id || currentApplication.id,
+            status,
+          })
+        ).unwrap();
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [dispatch, currentApplication]
+  );
+
+  const clearError = useCallback(() => {
+    dispatch(clearApplicationError());
+  }, [dispatch]);
+
+  return {
+    application: currentApplication,
+    isLoading,
+    isUpdating,
+    error,
+    fetchApplication: handleFetchApplication,
+    updateStatus: handleUpdateStatus,
+    clearError,
+    refetch: () => id && dispatch(fetchApplicationById(id)),
+  };
+};

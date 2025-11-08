@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/integrations/supabase/client";
 import { 
@@ -36,6 +37,7 @@ const API_URL = import.meta.env.VITE_API_URI;
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userRole, setUserRole] = useState<"student" | "company">("student");
@@ -185,8 +187,8 @@ const Settings = () => {
         throw new Error("Failed to delete account");
       }
 
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      // Sign out from Redux
+      await signOut();
 
       toast.success("Account deleted successfully");
       navigate("/");

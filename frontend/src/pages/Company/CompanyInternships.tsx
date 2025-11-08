@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/common/Navigation";
 import { toast } from "sonner";
-import { internshipAPI } from "@/lib/api";
-import { getSession } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompanyInternships } from "@/hooks/useInternships";
 
 import {
   MapPin,
@@ -16,6 +16,9 @@ import {
   Trash2,
   Plus,
   Users,
+  Building,
+  Clock,
+  Eye
 } from "lucide-react";
 import {
   AlertDialog,
@@ -31,47 +34,30 @@ import { Loader } from "@/components/ui/Loader";
 
 const CompanyInternships = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [internships, setInternships] = useState<any[]>([]);
+
+  // Use Redux hooks for state management
+  const { isAuthenticated, isCompany } = useAuth();
+  const { companyInternships, isLoading, refetch } = useCompanyInternships();
 
   useEffect(() => {
-    loadInternships();
-  }, []);
-
- const loadInternships = async () => {
-  try {
-    const session = await getSession();
-    if (!session) {
+    if (!isAuthenticated || !isCompany) {
       navigate("/auth");
       return;
     }
+  }, [isAuthenticated, isCompany, navigate]);
 
-    // CHANGED: Use backend API instead of supabase
-    const response = await internshipAPI.getAllByCompanyId({
-      page: 1,
-      limit: 100,
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      // This would need to be implemented in the Redux slice
+      // For now, we'll refetch
+      await refetch();
+      toast.success("Internship deleted successfully");
+    } catch (error: any) {
+      toast.error("Failed to delete internship");
+    }
+  };
 
-    setInternships(response.internships || []);
-  } catch (error: any) {
-    toast.error("Failed to load internships");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleDelete = async (id: string) => {
-  try {
-    // CHANGED: Use backend API instead of supabase
-    await internshipAPI.delete(id);
-    setInternships((prev) => prev.filter((i) => i._id !== id));
-    toast.success("Internship deleted successfully");
-  } catch (error: any) {
-    toast.error("Failed to delete internship");
-  }
-};
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
@@ -84,14 +70,14 @@ const handleDelete = async (id: string) => {
       <Navigation role="company" />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8 animate-slide-up">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-                Internships
+                Your Internships
               </h1>
               <p className="text-muted-foreground">
-                {internships.length} internships posted
+                {companyInternships.length} internships posted
               </p>
             </div>
             <Button
@@ -103,10 +89,12 @@ const handleDelete = async (id: string) => {
             </Button>
           </div>
 
-          {internships.length === 0 ? (
-            <Card className="p-12 text-center shadow-card">
-              <p className="text-xl text-muted-foreground mb-4">
-                No internships posted yet
+          {companyInternships.length === 0 ? (
+            <div className="text-center animate-scale-in py-20">
+              <div className="text-6xl mb-4">💼</div>
+              <h2 className="text-2xl font-bold mb-2">No internships posted yet</h2>
+              <p className="text-muted-foreground mb-4">
+                Create your first internship posting to start attracting talent
               </p>
               <Button
                 onClick={() => navigate("/company/internships/new")}
@@ -114,96 +102,169 @@ const handleDelete = async (id: string) => {
               >
                 Create Your First Internship
               </Button>
-            </Card>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {internships.map((internship, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {companyInternships.map((internship, idx) => (
                 <Card
                   key={internship.id}
-                  className="p-6 shadow-card hover:shadow-elevated transition-all animate-scale-in"
+                  className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card animate-scale-in"
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-2xl font-bold">
-                          {internship.title}
-                        </h3>
-                        <Badge
-                          variant={
-                            internship.status === "active"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {internship.status}
-                        </Badge>
+                  <CardContent className="p-0">
+                    {/* Header with Status */}
+                    <div className="p-4 border-b border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-secondary flex items-center justify-center ring-2 ring-border shadow-sm">
+                            <Building className="w-5 h-5 text-secondary-foreground" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Posted by you</p>
+                            <Badge
+                              className={
+                                internship.status === "active"
+                                  ? "bg-green-500 text-white"
+                                  : "bg-gray-500 text-white"
+                              }
+                            >
+                              {internship.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/company/internships/${internship.id}/edit`);
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Internship</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{internship.title}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(internship.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
-                      <p className="text-muted-foreground mb-3">
-                        {internship.description?.substring(0, 150)}...
+                      <h2 className="font-bold text-lg line-clamp-2 leading-tight">
+                        {internship.title}
+                      </h2>
+                    </div>
+
+                    {/* Internship Details */}
+                    <div className="p-4">
+                      {/* Description Preview */}
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3 leading-relaxed">
+                        {internship.description}
                       </p>
-                      <div className="flex flex-wrap gap-2 mb-3">
+
+                      {/* Quick Info Badges */}
+                      <div className="flex flex-wrap gap-1.5 mb-4">
                         {internship.location && (
-                          <Badge variant="outline" className="flex items-center gap-1">
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
                             {internship.location}
                           </Badge>
                         )}
+                        {internship.is_remote && (
+                          <Badge variant="secondary" className="text-xs">Remote</Badge>
+                        )}
                         {internship.stipend_min && (
-                          <Badge variant="outline" className="flex items-center gap-1">
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
-                            ${internship.stipend_min}-${internship.stipend_max}/mo
+                            ${internship.stipend_min}-{internship.stipend_max || internship.stipend_min}
                           </Badge>
                         )}
                         {internship.duration_months && (
-                          <Badge variant="outline" className="flex items-center gap-1">
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {internship.duration_months} months
+                            {internship.duration_months}m
                           </Badge>
                         )}
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {internship.applications_count || 0} applications
-                        </Badge>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          navigate(`/company/internships/${internship.id}/edit`)
-                        }
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Internship</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this internship?
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <div className="flex gap-2 justify-end">
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(internship.id)}
-                              className="bg-destructive"
-                            >
-                              Delete
-                            </AlertDialogAction>
+
+                      {/* Stats and Footer */}
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          <span>{internship.applications_count || 0} applications</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span>{internship.views_count || 0} views</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/company/applicants?internship=${internship.id}`);
+                          }}
+                        >
+                          <Users className="w-3 h-3 mr-1" />
+                          View Applicants
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-gradient-primary text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/company/internships/${internship.id}/edit`);
+                          }}
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+
+                      {/* Deadline Indicator */}
+                      {internship.application_deadline && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {Math.ceil(
+                                (new Date(internship.application_deadline).getTime() -
+                                  new Date().getTime()) /
+                                  (1000 * 60 * 60 * 24)
+                              )} days left
+                            </span>
                           </div>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>

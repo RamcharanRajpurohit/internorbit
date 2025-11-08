@@ -145,6 +145,8 @@ export const applicationAPI = {
       body: JSON.stringify({ status }),
     }),
 
+  getById: (id: string) => apiCall(`/applications/${id}`),
+
   withdraw: (id: string) => apiCall(`/applications/${id}`, {
     method: 'DELETE',
   }),
@@ -268,9 +270,21 @@ export const studentProfileAPI = {
 
 
 export const resumeAPI = {
-  getApplicationResume: (applicationId: string, accessType: 'view' | 'download' = 'view') =>
-    apiCall(`/resume/:resume_id/access?application_id=${applicationId}&access_type=${accessType}`, {
+  getApplicationResume: (resumeId: string, applicationId: string, accessType: 'view' | 'download' = 'view') =>
+    apiCall(`/resume/${resumeId}/access?application_id=${applicationId}&access_type=${accessType}`, {
       method: 'POST',
+    }),
+
+  // Get student's own resume for viewing
+  getStudentResume: (resumeId: string, accessType: 'view' | 'download' = 'view') =>
+    apiCall(`/resume/${resumeId}/access?access_type=${accessType}`, {
+      method: 'POST',
+    }),
+
+  // Get all student resumes
+  getStudentResumes: () =>
+    apiCall('/resume', {
+      method: 'GET',
     }),
 
   // Company discovers public resumes

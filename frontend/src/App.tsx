@@ -4,9 +4,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "@/store";
 
 // Existing Pages
 import Index from "./pages/Common/Index";
+import Auth from "./pages/Common/Auth";
+import AuthCallback from "./pages/Common/AuthCallback";
 import NotFound from "./pages/Common/NotFound";
 import StudentProfile from "./pages/Student/Profile/StudentProfile";
 import SavedInternships from "./pages/Student/SavedInternships";
@@ -28,19 +33,32 @@ import Contact from "./pages/Common/Contact";
 import Onboarding from "./pages/Common/Onboarding";
 import CompanyPublicProfile from "./pages/Company/CompanyPublicProfile";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  <Provider store={store}>
+    <PersistGate loading={null} persistor={persistor}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
         <Routes>
           {/* Main Routes */}
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Index />} />
-          <Route path="/auth/callback" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* NEW: Onboarding */}
           <Route path="/onboarding" element={<Onboarding userRole="student" />} />
@@ -89,9 +107,11 @@ const App = () => (
           {/* Catch-all for 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </PersistGate>
+  </Provider>
 );
 
 export default App;
