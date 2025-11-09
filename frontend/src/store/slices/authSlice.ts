@@ -1,15 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { supabase } from '@/integrations/supabase/client';
 import { authAPI } from '@/lib/api';
-
-// Types
-export interface User {
-  id: string;
-  email: string;
-  role: 'student' | 'company';
-  profile_complete: boolean;
-  created_at: string;
-}
+import type { User, AuthResponse } from '@/types';
 
 export interface AuthState {
   user: User | null;
@@ -29,7 +21,7 @@ export const checkAuth = createAsyncThunk(
         throw new Error('No active session');
       }
 
-      const response = await authAPI.getCurrentUser();
+      const response: AuthResponse = await authAPI.getCurrentUser();
       return response.user;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Authentication failed');
@@ -41,7 +33,7 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (profileData: any, { rejectWithValue }) => {
     try {
-      const response = await authAPI.updateProfile(profileData);
+      const response: AuthResponse = await authAPI.updateProfile(profileData);
       return response.user;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Profile update failed');

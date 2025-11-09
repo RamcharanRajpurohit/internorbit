@@ -29,7 +29,7 @@ const StudentDashboard = () => {
   const { saveJob, unsaveJob } = useSavedJobs(false); // Explicitly disable auto-fetch for dashboard
 
   // Get saved jobs to check saved status
-  const savedJobs = useSelector((state: any) => state.application.savedJobs);
+  const savedJobs = useSelector((state: any) => state.interaction.savedJobs);
 
   // State for managing filtered internships
   const [filteredInternships, setFilteredInternships] = useState<any[]>([]);
@@ -72,13 +72,13 @@ const StudentDashboard = () => {
   }, [internships]);
 
   // Handle save/unsave functionality
-  const handleSave = async (internshipId: string, isCurrentlySaved: boolean) => {
+  const handleSave = async (internshipId: string, isCurrentlySaved: boolean, internshipData?: any) => {
     try {
       if (isCurrentlySaved) {
         await unsaveJob(internshipId);
         toast.success("Removed from saved");
       } else {
-        await saveJob(internshipId);
+        await saveJob(internshipId, internshipData);
         toast.success("Internship saved!");
       }
     } catch (error: any) {
@@ -193,7 +193,7 @@ const StudentDashboard = () => {
                             className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSave(internshipId, isSaved);
+                              handleSave(internshipId, isSaved, internship);
                             }}
                           >
                             <Heart

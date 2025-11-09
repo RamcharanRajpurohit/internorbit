@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
+import { getCompanyData, getInternshipData } from "@/lib/dataNormalization";
+import { APPLICATION_STATUS, APPLICATION_STATUS_OPTIONS, getApplicationStatusInfo } from "@/constants/applicationStatus";
 import {
   Calendar, MapPin, Trash2, Building, Clock,
   Eye, CheckCircle, XCircle, AlertCircle,
@@ -14,10 +16,11 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader } from "@/components/ui/Loader";
+import type { ApplicationStatus } from "@/types";
 
 const Applications = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState<"all" | ApplicationStatus>("all");
   const [page, setPage] = useState(1);
 
   // Use our new state management hooks
@@ -52,35 +55,22 @@ const Applications = () => {
     }
   };
 
-  const getStatusInfo = (appStatus: string) => {
-    const statusInfo: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-      pending: {
-        color: "bg-yellow-500",
-        icon: <Clock className="w-4 h-4" />,
-        label: "Pending"
-      },
-      reviewed: {
-        color: "bg-blue-500",
-        icon: <Eye className="w-4 h-4" />,
-        label: "Reviewed"
-      },
-      shortlisted: {
-        color: "bg-purple-500",
-        icon: <AlertCircle className="w-4 h-4" />,
-        label: "Shortlisted"
-      },
-      accepted: {
-        color: "bg-green-500",
-        icon: <CheckCircle className="w-4 h-4" />,
-        label: "Accepted"
-      },
-      rejected: {
-        color: "bg-red-500",
-        icon: <XCircle className="w-4 h-4" />,
-        label: "Rejected"
-      },
+  const getStatusInfo = (appStatus: ApplicationStatus) => {
+    const statusConfig = getApplicationStatusInfo(appStatus);
+    const iconMap = {
+      pending: <Clock className="w-4 h-4" />,
+      reviewed: <Eye className="w-4 h-4" />,
+      shortlisted: <AlertCircle className="w-4 h-4" />,
+      accepted: <CheckCircle className="w-4 h-4" />,
+      rejected: <XCircle className="w-4 h-4" />,
+      withdrawn: <AlertCircle className="w-4 h-4" />,
     };
-    return statusInfo[appStatus] || { color: "bg-gray-500", icon: <Clock className="w-4 h-4" />, label: "Unknown" };
+
+    return {
+      color: statusConfig.color,
+      icon: iconMap[appStatus] || <Clock className="w-4 h-4" />,
+      label: statusConfig.label,
+    };
   };
 
   
@@ -107,14 +97,14 @@ const Applications = () => {
             </p>
           </div>
 
-          <Tabs value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} className="mb-8">
+          <Tabs value={status} onValueChange={(value) => { setStatus(value as "all" | ApplicationStatus); setPage(1); }} className="mb-8">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
-              <TabsTrigger value="shortlisted">Shortlisted</TabsTrigger>
-              <TabsTrigger value="accepted">Accepted</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected</TabsTrigger>
+              {APPLICATION_STATUS_OPTIONS.map((statusOption) => (
+                <TabsTrigger key={statusOption.value} value={statusOption.value}>
+                  {statusOption.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
 
@@ -132,8 +122,8 @@ const Applications = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {applicationsData.map((app) => {
-                const internship = typeof app.internship_id === 'object' ? app.internship_id : null;
-                const company = internship?.company_id && typeof internship.company_id === 'object' ? internship.company_id : null;
+                const internship = getInternshipData(app);
+                const company = internship ? getCompanyData(internship) : null;
                 const statusInfo = getStatusInfo(app.status);
 
                 if (!internship) {

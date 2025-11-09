@@ -1,78 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { interactionAPI } from '@/lib/api';
-
-// Types
-export interface SavedJob {
-  _id: string;
-  id: string;
-  internship_id: string | {
-    _id: string;
-    id: string;
-    title: string;
-    description: string;
-    location: string;
-    is_remote: boolean;
-    duration_months: number;
-    stipend_min: number;
-    stipend_max: number;
-    application_deadline: string;
-    status: string;
-    skills_required: string[];
-    company_id?: string | {
-      company_name: string;
-      logo_url?: string;
-      website?: string;
-      industry?: string;
-    };
-    company?: {
-      _id: string;
-      company_name: string;
-      logo_url?: string;
-      website?: string;
-      industry?: string;
-    };
-  };
-  saved_at: string;
-  internship?: {
-    _id: string;
-    id: string;
-    title: string;
-    description: string;
-    location: string;
-    is_remote: boolean;
-    duration_months: number;
-    stipend_min: number;
-    stipend_max: number;
-    application_deadline: string;
-    status: string;
-    skills_required: string[];
-    company_id?: string | {
-      company_name: string;
-      logo_url?: string;
-      website?: string;
-      industry?: string;
-    };
-    company?: {
-      _id: string;
-      company_name: string;
-      logo_url?: string;
-      website?: string;
-      industry?: string;
-    };
-  };
-}
-
-export interface SwipeRecord {
-  id: string;
-  internship_id: string;
-  direction: 'left' | 'right';
-  created_at: string;
-  internship?: {
-    id: string;
-    title: string;
-    company_name: string;
-  };
-}
+import { extractSavedJob } from '@/lib/dataNormalization';
+import type {
+  SavedJob,
+  SwipeRecord,
+  SavedJobsListResponse,
+  SaveJobResponse,
+  SwipeListResponse,
+  PaginationInfo
+} from '@/types';
 
 export interface InteractionState {
   savedJobs: SavedJob[];
@@ -82,12 +18,7 @@ export interface InteractionState {
   error: string | null;
   hasFetchedSavedJobs: boolean;
   pagination: {
-    savedJobs: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
+    savedJobs: PaginationInfo;
   };
 }
 
@@ -96,9 +27,9 @@ export const fetchSavedJobs = createAsyncThunk(
   'interaction/fetchSavedJobs',
   async (params: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
     try {
-      const response = await interactionAPI.getSavedJobs(params);
+      const response: SavedJobsListResponse = await interactionAPI.getSavedJobs(params);
       return {
-        savedJobs: response.saved || [],
+        savedJobs: response.saved || response.savedJobs || [],
         pagination: response.pagination || {
           page: params.page || 1,
           limit: params.limit || 10,
@@ -114,10 +45,31 @@ export const fetchSavedJobs = createAsyncThunk(
 
 export const saveJob = createAsyncThunk(
   'interaction/saveJob',
-  async (internship_id: string, { rejectWithValue }) => {
+  async ({ internship_id, internshipData }: { internship_id: string; internshipData?: any }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await interactionAPI.saveJob(internship_id);
-      return response.saved_job;
+      const response: SaveJobResponse = await interactionAPI.saveJob(internship_id);
+
+      // Dispatch sync to internshipSlice
+      dispatch(syncSaveJobToInternshipSlice({
+        internshipId: internship_id,
+        isSaved: true
+      }));
+
+      const normalizedSavedJob = extractSavedJob(response.saved);
+      if (!normalizedSavedJob) {
+        throw new Error('Invalid saved job response');
+      }
+
+      // If internship data is provided, merge it with the saved job response
+      if (internshipData) {
+        return {
+          ...normalizedSavedJob, // Backend response (student_id, _id, saved_at, etc.)
+          internship_id: internshipData._id || internship_id,
+          internship: internshipData, // Full internship data from dashboard
+        };
+      }
+
+      return normalizedSavedJob;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to save job');
     }
@@ -126,9 +78,16 @@ export const saveJob = createAsyncThunk(
 
 export const unsaveJob = createAsyncThunk(
   'interaction/unsaveJob',
-  async (internship_id: string, { rejectWithValue }) => {
+  async (internship_id: string, { rejectWithValue, dispatch }) => {
     try {
       await interactionAPI.unsaveJob(internship_id);
+
+      // Dispatch sync to internshipSlice
+      dispatch(syncSaveJobToInternshipSlice({
+        internshipId: internship_id,
+        isSaved: false
+      }));
+
       return internship_id;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to unsave job');
@@ -152,7 +111,7 @@ export const fetchSwipes = createAsyncThunk(
   'interaction/fetchSwipes',
   async (params: { page?: number; limit?: number; direction?: string } = {}, { rejectWithValue }) => {
     try {
-      const response = await interactionAPI.getSwipes(params);
+      const response: SwipeListResponse = await interactionAPI.getSwipes(params);
       return response.swipes || [];
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch swipes');
@@ -198,6 +157,40 @@ const interactionSlice = createSlice({
       state.savedJobs = [];
       state.hasFetchedSavedJobs = false;
     },
+    // FIX: Sync action from other slices - no-op here
+    syncSaveJobToInternshipSlice: (state, _action: PayloadAction<{ internshipId: string; isSaved: boolean }>) => {
+      // This reducer exists to allow dispatching cross-slice updates
+      // The actual update happens in internshipSlice
+    },
+    // NEW: Manually add saved job to list WITHOUT refetch
+    addSavedJobToList: (state, action: PayloadAction<SavedJob>) => {
+     console.log('Adding saved job to list:', action);
+      console.log('Adding saved job to list:', action.payload);
+      const exists = state.savedJobs.some(job =>
+        job._id === action.payload._id
+      );
+
+      if (!exists) {
+        state.savedJobs.unshift(action.payload);
+        state.pagination.savedJobs.total += 1;
+      }
+    },
+    // NEW: Manually remove saved job from list WITHOUT refetch
+    removeSavedJobFromList: (state, action: PayloadAction<string>) => {
+      const initialLength = state.savedJobs.length;
+      state.savedJobs = state.savedJobs.filter(job => {
+        const jobInternshipId = typeof job.internship_id === 'object'
+          ? job.internship_id._id
+          : job.internship_id;
+        return jobInternshipId !== action.payload && job._id !== action.payload;
+      });
+
+      // Update total count
+      const removedCount = initialLength - state.savedJobs.length;
+      if (removedCount > 0) {
+        state.pagination.savedJobs.total = Math.max(0, state.pagination.savedJobs.total - removedCount);
+      }
+    },
   },
 
   extraReducers: (builder) => {
@@ -225,11 +218,9 @@ const interactionSlice = createSlice({
         state.isSubmitting = true;
         state.error = null;
       })
-      .addCase(saveJob.fulfilled, (state, action) => {
+      .addCase(saveJob.fulfilled, (state) => {
         state.isSubmitting = false;
-        if (action.payload && Array.isArray(state.savedJobs)) {
-          state.savedJobs.unshift(action.payload);
-        }
+        // Now handled via addSavedJobToList action from component
         state.error = null;
       })
       .addCase(saveJob.rejected, (state, action) => {
@@ -243,22 +234,9 @@ const interactionSlice = createSlice({
         state.isSubmitting = true;
         state.error = null;
       })
-      .addCase(unsaveJob.fulfilled, (state, action) => {
+      .addCase(unsaveJob.fulfilled, (state) => {
         state.isSubmitting = false;
-        if (Array.isArray(state.savedJobs)) {
-          const internshipIdToRemove = action.payload;
-          const beforeCount = state.savedJobs.length;
-          state.savedJobs = state.savedJobs.filter(job => {
-            const jobInternshipId = typeof job.internship_id === 'object'
-              ? job.internship_id._id || job.internship_id.id
-              : job.internship_id;
-            return jobInternshipId !== internshipIdToRemove;
-          });
-          const removedCount = beforeCount - state.savedJobs.length;
-          if (removedCount > 0) {
-            console.log(`✅ Removed ${removedCount} saved job(s)`);
-          }
-        }
+        // Now handled via removeSavedJobFromList action from component
         state.error = null;
       })
       .addCase(unsaveJob.rejected, (state, action) => {
@@ -304,6 +282,9 @@ export const {
   clearError: clearInteractionError,
   clearAllInteractionData,
   resetSavedJobs,
+  syncSaveJobToInternshipSlice,
+  addSavedJobToList,
+  removeSavedJobFromList,
 } = interactionSlice.actions;
 
 export default interactionSlice.reducer;

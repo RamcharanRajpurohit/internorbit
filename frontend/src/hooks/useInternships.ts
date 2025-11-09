@@ -174,9 +174,9 @@ export const useInternshipActions = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   // Use Redux thunks instead of React Query mutations
-  const handleSaveJob = async (internshipId: string) => {
+  const handleSaveJob = async (internshipId: string, internshipData?: any) => {
     try {
-      await dispatch(saveJob(internshipId)).unwrap();
+      await dispatch(saveJob({ internship_id: internshipId, internshipData })).unwrap();
       // Also update the internship list to reflect the saved status
       dispatch(toggleSavedStatus({ _id: internshipId, isSaved: true }));
     } catch (error: any) {

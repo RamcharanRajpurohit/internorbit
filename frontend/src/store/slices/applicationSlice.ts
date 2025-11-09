@@ -1,105 +1,20 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { applicationAPI } from '@/lib/api';
-
-// Types
-export interface Application {
-  _id: string;
-  id: string;
-  internship_id: string | {
-    _id: string;
-    id: string;
-    title: string;
-    description: string;
-    location: string;
-    is_remote: boolean;
-    duration_months: number;
-    stipend_min: number;
-    stipend_max: number;
-    application_deadline: string;
-    status: string;
-    skills_required: string[];
-    company_id?: string | {
-      company_name: string;
-      logo_url?: string;
-      website?: string;
-      industry?: string;
-    };
-  };
-  student_id: string | {
-    _id: string;
-    user_id: string;
-    full_name: string;
-    email: string;
-    avatar_url?: string;
-    university?: string;
-    degree?: string;
-    graduation_year?: number;
-    location?: string;
-    phone?: string;
-    linkedin_url?: string;
-    github_url?: string;
-    bio?: string;
-    skills?: string[];
-  };
-  resume_id: string | {
-    _id: string;
-    file_name: string;
-    file_path: string;
-    file_size: number;
-    mime_type: string;
-    visibility: 'private' | 'public' | 'restricted';
-    is_primary: boolean;
-    scan_status: 'pending' | 'clean' | 'rejected';
-    scan_message?: string;
-    uploaded_at: string;
-    updated_at: string;
-    views_count: number;
-    downloads_count: number;
-    last_viewed_at?: string;
-    last_downloaded_at?: string;
-  };
-  cover_letter: string;
-  status: 'pending' | 'reviewed' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
-  applied_at: string;
-  reviewed_at?: string;
-  updated_at: string;
-  feedback?: string;
-  student?: {
-    _id: string;
-    user_id: string;
-    full_name: string;
-    email: string;
-    avatar_url?: string;
-    university?: string;
-    degree?: string;
-    graduation_year?: number;
-    location?: string;
-    phone?: string;
-    linkedin_url?: string;
-    github_url?: string;
-    bio?: string;
-    skills?: string[];
-  };
-  internship?: {
-    _id: string;
-    title: string;
-    description: string;
-    location: string;
-    is_remote: boolean;
-    duration_months: number;
-    stipend_min: number;
-    stipend_max: number;
-    application_deadline: string;
-    status: string;
-    skills_required: string[];
-    company_id?: {
-      company_name: string;
-      logo_url?: string;
-      website?: string;
-      industry?: string;
-    };
-  };
-}
+import { extractApplication } from '@/lib/dataNormalization';
+import type {
+  Application,
+  ApplicationStatus,
+  ApplicationListResponse,
+  ApplicationDetailResponse,
+  CreateApplicationRequest,
+  CreateApplicationResponse,
+  UpdateApplicationStatusRequest,
+  Internship,
+  StudentProfile,
+  Resume,
+  CompanyProfile,
+  PaginationInfo
+} from '@/types';
 
 export interface ApplicationState {
   studentApplications: Application[];
@@ -110,27 +25,17 @@ export interface ApplicationState {
   isUpdating: boolean;
   error: string | null;
   pagination: {
-    student: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-    company: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
+    student: PaginationInfo;
+    company: PaginationInfo;
   };
 }
 
 // Async thunks
 export const fetchStudentApplications = createAsyncThunk(
   'application/fetchStudentApplications',
-  async (params: { page?: number; limit?: number; status?: string } = {}, { rejectWithValue }) => {
+  async (params: { page?: number; limit?: number; status?: ApplicationStatus } = {}, { rejectWithValue }) => {
     try {
-      const response = await applicationAPI.getStudentApplications(params);
+      const response: ApplicationListResponse = await applicationAPI.getStudentApplications(params);
       return {
         applications: response.applications || [],
         pagination: response.pagination || {
@@ -148,9 +53,9 @@ export const fetchStudentApplications = createAsyncThunk(
 
 export const fetchCompanyApplications = createAsyncThunk(
   'application/fetchCompanyApplications',
-  async (params: { page?: number; limit?: number; status?: string } = {}, { rejectWithValue }) => {
+  async (params: { page?: number; limit?: number; status?: ApplicationStatus } = {}, { rejectWithValue }) => {
     try {
-      const response = await applicationAPI.getCompanyApplications(params);
+      const response: ApplicationListResponse = await applicationAPI.getCompanyApplications(params);
       return {
         applications: response.applications || [],
         pagination: response.pagination || {
@@ -168,14 +73,37 @@ export const fetchCompanyApplications = createAsyncThunk(
 
 export const createApplication = createAsyncThunk(
   'application/createApplication',
-  async (applicationData: {
-    internship_id: string;
-    resume_id: string;
-    cover_letter: string;
-  }, { rejectWithValue }) => {
+  async (
+    { applicationData, internshipData }: { applicationData: CreateApplicationRequest; internshipData?: any },
+    { rejectWithValue, dispatch }
+  ) => {
     try {
-      const response = await applicationAPI.create(applicationData);
-      return response.application;
+      const response: CreateApplicationResponse = await applicationAPI.create(applicationData);
+
+      // Dispatch sync to internshipSlice
+      dispatch(syncApplicationToInternshipSlice({
+        internshipId: applicationData.internship_id,
+        hasApplied: true
+      }));
+
+      const normalizedApplication = extractApplication(response.application);
+      if (!normalizedApplication) {
+        throw new Error('Invalid application response');
+      }
+
+      // If internship data is provided, merge it with the application response
+      if (internshipData) {
+        return {
+          ...normalizedApplication,
+          internship: internshipData, // Full internship data from apply page
+          applications_count: response.applications_count || internshipData.applications_count || 0
+        };
+      }
+
+      return {
+        ...normalizedApplication,
+        applications_count: response.applications_count || response.application?.internship?.applications_count
+      };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create application');
     }
@@ -184,10 +112,13 @@ export const createApplication = createAsyncThunk(
 
 export const updateApplicationStatus = createAsyncThunk(
   'application/updateApplicationStatus',
-  async ({ id, status }: { id: string; status: string }, { rejectWithValue }) => {
+  async ({ id, status }: { id: string; status: ApplicationStatus }, { rejectWithValue }) => {
     try {
-      const response = await applicationAPI.updateStatus(id, status);
-      return response.application;
+      const response: CreateApplicationResponse = await applicationAPI.updateStatus(id, { status });
+      return {
+        ...response.application,
+        applications_count: response.applications_count || response.application?.internship?.applications_count
+      };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update application status');
     }
@@ -196,9 +127,26 @@ export const updateApplicationStatus = createAsyncThunk(
 
 export const withdrawApplication = createAsyncThunk(
   'application/withdrawApplication',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue, dispatch, getState }) => {
     try {
+      const state = getState() as { application: ApplicationState };
+      const application = state.application.currentApplication ||
+        state.application.studentApplications.find(app => app._id === id);
+
+      const internshipId = typeof application?.internship_id === 'object'
+        ? application?.internship_id._id
+        : application?.internship_id;
+
       await applicationAPI.withdraw(id);
+
+      // Dispatch sync to internshipSlice
+      if (internshipId) {
+        dispatch(syncApplicationToInternshipSlice({
+          internshipId,
+          hasApplied: false
+        }));
+      }
+
       return id;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to withdraw application');
@@ -210,7 +158,7 @@ export const fetchApplicationById = createAsyncThunk(
   'application/fetchApplicationById',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await applicationAPI.getById(id);
+      const response: ApplicationDetailResponse = await applicationAPI.getById(id);
       return response.application;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch application');
@@ -254,20 +202,68 @@ const applicationSlice = createSlice({
     clearCurrentApplication: (state) => {
       state.currentApplication = null;
     },
+    addApplicationToList: (state, action: PayloadAction<Application>) => {
+      const exists = state.studentApplications.some(app =>
+        app._id === action.payload._id
+      );
+
+      if (!exists) {
+        state.studentApplications.unshift(action.payload);
+        state.pagination.student.total += 1;
+      }
+    },
+
+    // NEW: Manually remove application from list (for cross-page updates)
+    removeApplicationFromList: (state, action: PayloadAction<string>) => {
+      const initialLength = state.studentApplications.length;
+      state.studentApplications = state.studentApplications.filter(app =>
+        app._id !== action.payload
+      );
+
+      const removedCount = initialLength - state.studentApplications.length;
+      if (removedCount > 0) {
+        state.pagination.student.total = Math.max(0, state.pagination.student.total - removedCount);
+      }
+    },
+
+    // NEW: Manually update application status in list
+    updateApplicationStatusInList: (state, action: PayloadAction<{ id: string; status: ApplicationStatus }>) => {
+      const { id, status } = action.payload;
+
+      const studentIndex = state.studentApplications.findIndex(app => app._id === id);
+      if (studentIndex !== -1) {
+        state.studentApplications[studentIndex].status = status;
+      }
+
+      const companyIndex = state.companyApplications.findIndex(app => app._id === id);
+      if (companyIndex !== -1) {
+        state.companyApplications[companyIndex].status = status;
+      }
+
+      if (state.currentApplication && state.currentApplication._id === id) {
+        state.currentApplication.status = status;
+      }
+    },
+
     updateApplicationInList: (state, action: PayloadAction<Application>) => {
-      const studentIndex = state.studentApplications.findIndex(app => app.id === action.payload.id);
+      const studentIndex = state.studentApplications.findIndex(app => app._id === action.payload._id);
       if (studentIndex !== -1) {
         state.studentApplications[studentIndex] = action.payload;
       }
 
-      const companyIndex = state.companyApplications.findIndex(app => app.id === action.payload.id);
+      const companyIndex = state.companyApplications.findIndex(app => app._id === action.payload._id);
       if (companyIndex !== -1) {
         state.companyApplications[companyIndex] = action.payload;
       }
 
-      if (state.currentApplication?.id === action.payload.id) {
+      if (state.currentApplication && state.currentApplication._id === action.payload._id) {
         state.currentApplication = action.payload;
       }
+    },
+    // FIX: Sync action from other slices
+    syncApplicationToInternshipSlice: (state, _action: PayloadAction<{ internshipId: string; hasApplied: boolean }>) => {
+      // This reducer exists to allow dispatching cross-slice updates
+      // The actual update happens in internshipSlice
     },
     clearAllApplicationData: (state) => {
       state.studentApplications = [];
@@ -323,9 +319,10 @@ const applicationSlice = createSlice({
       })
       .addCase(createApplication.fulfilled, (state, action) => {
         state.isSubmitting = false;
-        state.studentApplications.unshift(action.payload);
+        // Now handled via addApplicationToList action from component
         state.error = null;
       })
+
       .addCase(createApplication.rejected, (state, action) => {
         state.isSubmitting = false;
         state.error = action.payload as string;
@@ -339,15 +336,19 @@ const applicationSlice = createSlice({
       })
       .addCase(updateApplicationStatus.fulfilled, (state, action) => {
         state.isUpdating = false;
-        const companyIndex = state.companyApplications.findIndex(app => app.id === action.payload.id);
+        const payloadId = action.payload._id;
+
+        const companyIndex = state.companyApplications.findIndex(app => app._id === payloadId);
         if (companyIndex !== -1) {
           state.companyApplications[companyIndex] = action.payload;
         }
-        const studentIndex = state.studentApplications.findIndex(app => app.id === action.payload.id);
+
+        const studentIndex = state.studentApplications.findIndex(app => app._id === payloadId);
         if (studentIndex !== -1) {
           state.studentApplications[studentIndex] = action.payload;
         }
-        if (state.currentApplication?.id === action.payload.id) {
+
+        if (state.currentApplication && state.currentApplication._id === payloadId) {
           state.currentApplication = action.payload;
         }
         state.error = null;
@@ -359,11 +360,18 @@ const applicationSlice = createSlice({
 
     // Withdraw application
     builder
-      .addCase(withdrawApplication.fulfilled, (state, action) => {
-        state.studentApplications = state.studentApplications.filter(app => app.id !== action.payload);
-        if (state.currentApplication?.id === action.payload) {
-          state.currentApplication = null;
-        }
+      .addCase(withdrawApplication.pending, (state) => {
+        state.isSubmitting = true;
+        state.error = null;
+      })
+      .addCase(withdrawApplication.fulfilled, (state) => {
+        state.isSubmitting = false;
+        // Now handled via removeApplicationFromList action from component
+        state.error = null;
+      })
+      .addCase(withdrawApplication.rejected, (state, action) => {
+        state.isSubmitting = false;
+        state.error = action.payload as string;
       });
 
     // Fetch application by ID
@@ -388,7 +396,11 @@ export const {
   clearError: clearApplicationError,
   clearCurrentApplication,
   updateApplicationInList,
+  syncApplicationToInternshipSlice,
   clearAllApplicationData,
+  addApplicationToList,
+  removeApplicationFromList,
+  updateApplicationStatusInList,
 } = applicationSlice.actions;
 
 export default applicationSlice.reducer;

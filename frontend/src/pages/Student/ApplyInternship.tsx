@@ -21,10 +21,12 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getAuthToken } from '@/integrations/supabase/client';
+import { useStudentApplications } from '@/hooks/useApplications';
 
 const ApplyInternship = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { createApplication } = useStudentApplications(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [internship, setInternship] = useState<any>(null);
@@ -142,11 +144,11 @@ const ApplyInternship = () => {
 
     setSubmitting(true);
     try {
-      await applicationAPI.create({
+      await createApplication({
         internship_id: id!,
         resume_id: selectedResumeId,
         cover_letter: formData.cover_letter,
-      });
+      }, internship);
 
       toast.success('Application submitted! Good luck! 🚀');
       navigate('/applications');

@@ -1,8 +1,9 @@
 // frontend/src/pages/InternshipDetail.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { internshipAPI, interactionAPI } from "@/lib/api";
-import { getSession } from "@/integrations/supabase/client";
+import { internshipAPI } from "@/lib/api";
+import { useSavedJobs } from "@/hooks/useSaved";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,34 +26,33 @@ import { Loader } from "@/components/ui/Loader";
 const InternshipDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { isAuthenticated, isStudent } = useAuth();
+  const { saveJob, unsaveJob, savedJobs } = useSavedJobs(false);
   const [loading, setLoading] = useState(true);
   const [internship, setInternship] = useState<any>(null);
-  const [isSaved, setIsSaved] = useState(false);
-  const [userRole, setUserRole] = useState<"student" | "company">("student");
 
   useEffect(() => {
-    loadInternship();
-    checkIfSaved();
-    checkUserRole();
-  }, [id]);
-
-  const checkUserRole = async () => {
-    try {
-      const session = await getSession();
-      if (session?.user) {
-        // Get role from backend
-        const response = await fetch(`${import.meta.env.VITE_API_URI}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-        const data = await response.json();
-        setUserRole(data.user.role);
-      }
-    } catch (error) {
-      console.error("Error checking role:", error);
+    if (!isAuthenticated || !isStudent) {
+      navigate("/auth");
+      return;
     }
-  };
+    loadInternship();
+  }, [id, isAuthenticated, isStudent, navigate]);
+
+  // Check if internship is saved based on Redux state
+  const isSaved = savedJobs.some(savedJob => {
+    let savedInternshipId = null;
+    if (typeof savedJob.internship_id === 'object') {
+      savedInternshipId = savedJob.internship_id._id || savedJob.internship_id.id;
+    } else if (typeof savedJob.internship === 'object') {
+      savedInternshipId = savedJob.internship._id || savedJob.internship.id;
+    } else if (savedJob._id || savedJob.id) {
+      savedInternshipId = savedJob._id || savedJob.id;
+    } else if (typeof savedJob.internship_id === 'string') {
+      savedInternshipId = savedJob.internship_id;
+    }
+    return savedInternshipId === id;
+  });
 
   const loadInternship = async () => {
     try {
@@ -67,24 +67,14 @@ const InternshipDetail = () => {
     }
   };
 
-  const checkIfSaved = async () => {
-    try {
-      const response = await interactionAPI.checkIfSaved(id!);
-      setIsSaved(response.isSaved);
-    } catch (error) {
-      console.error("Error checking saved status:", error);
-    }
-  };
-
+  
   const handleSave = async () => {
     try {
       if (isSaved) {
-        await interactionAPI.unsaveJob(id!);
-        setIsSaved(false);
+        await unsaveJob(id!);
         toast.success("Removed from saved");
       } else {
-        await interactionAPI.saveJob(id!);
-        setIsSaved(true);
+        await saveJob(id!, internship); // Pass the full internship data
         toast.success("Saved successfully");
       }
     } catch (error: any) {
@@ -115,12 +105,13 @@ const InternshipDetail = () => {
     );
   }
 
-  const company = internship.company_id;
-  const companyProfile = company;
+  // Handle company data from API response
+  const companyData = internship.company || internship.company_id;
+  const companyProfile = companyData;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Navigation role={userRole} />
+      <Navigation role="student" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
@@ -137,10 +128,10 @@ const InternshipDetail = () => {
             <CardHeader className="border-b">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  {companyProfile?.logo_url ? (
+                  {companyProfile?.company_profiles?.[0]?.logo_url || companyProfile?.logo_url ? (
                     <img
-                      src={companyProfile.logo_url}
-                      alt={companyProfile.company_name}
+                      src={companyProfile?.company_profiles?.[0]?.logo_url || companyProfile?.logo_url}
+                      alt={companyProfile?.company_profiles?.[0]?.company_name || companyProfile?.company_name || "Company"}
                       className="w-16 h-16 rounded-xl object-cover ring-2 ring-border shadow-sm"
                     />
                   ) : (
@@ -154,11 +145,13 @@ const InternshipDetail = () => {
                     </CardTitle>
                     <p className="text-lg text-muted-foreground flex items-center gap-2">
                       <Building className="w-4 h-4" />
-                      {companyProfile?.company_name || "Company"}
+                      {companyProfile?.company_profiles?.[0]?.company_name ||
+                       companyProfile?.company_name ||
+                       "Company"}
                     </p>
                   </div>
                 </div>
-                {userRole === "student" && (
+                {isStudent && (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -290,36 +283,38 @@ const InternshipDetail = () => {
                   <h3 className="text-xl font-bold mb-3">About the Company</h3>
                   <div className="space-y-2">
                     <p className="text-muted-foreground">
-                      {companyProfile.description || "No description available"}
+                      {companyProfile?.company_profiles?.[0]?.description ||
+                       companyProfile?.description ||
+                       "No description available"}
                     </p>
-                    {companyProfile.industry && (
+                    {companyProfile?.company_profiles?.[0]?.industry || companyProfile?.industry ? (
                       <p className="text-sm">
                         <span className="font-semibold">Industry:</span>{" "}
-                        {companyProfile.industry}
+                        {companyProfile?.company_profiles?.[0]?.industry || companyProfile?.industry}
                       </p>
-                    )}
-                    {companyProfile.company_size && (
+                    ) : null}
+                    {companyProfile?.company_profiles?.[0]?.company_size || companyProfile?.company_size ? (
                       <p className="text-sm">
                         <span className="font-semibold">Size:</span>{" "}
-                        {companyProfile.company_size} employees
+                        {companyProfile?.company_profiles?.[0]?.company_size || companyProfile?.company_size} employees
                       </p>
-                    )}
-                    {companyProfile.website && (
+                    ) : null}
+                    {companyProfile?.company_profiles?.[0]?.website || companyProfile?.website ? (
                       <a
-                        href={companyProfile.website}
+                        href={companyProfile?.company_profiles?.[0]?.website || companyProfile?.website}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline"
                       >
                         Visit Website →
                       </a>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               )}
 
               {/* Apply Section */}
-              {userRole === "student" && (
+              {isStudent && (
                 <div className="mt-8 p-6 bg-gradient-card rounded-lg text-center">
                   <h3 className="text-2xl font-bold mb-2">Ready to Apply?</h3>
                   <p className="text-muted-foreground mb-4">

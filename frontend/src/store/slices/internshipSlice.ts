@@ -1,68 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { internshipAPI } from '@/lib/api';
-
-// Types
-export interface Internship {
-  _id: string;
-  id: string; // Alias for _id for frontend compatibility
-  company_id: string | {
-    _id: string;
-    company_name: string;
-    logo_url?: string;
-    website?: string;
-    industry?: string;
-    company_size?: string;
-    location?: string;
-    description?: string;
-  };
-  title: string;
-  description: string;
-  requirements: string[];
-  responsibilities: string[];
-  location: string;
-  is_remote: boolean;
-  stipend_min: number;
-  stipend_max: number;
-  duration_months: number;
-  skills_required: string[];
-  application_deadline: string;
-  positions_available: number;
-  status: 'active' | 'closed' | 'draft';
-  views_count: number;
-  applications_count: number;
-  application_count?: number; // Alias for applications_count for frontend compatibility
-  created_at: string;
-  updated_at: string;
-  // Frontend convenience fields (not from backend)
-  company_name?: string;
-  is_saved?: boolean;
-  has_applied?: boolean;
-  deadline?: string; // Alias for application_deadline
-  duration?: string; // Computed from duration_months
-  skills?: string[]; // Alias for skills_required
-  // Populated relationship fields
-  company?: {
-    _id: string;
-    company_name: string;
-    logo_url?: string;
-    website?: string;
-    industry?: string;
-    company_size?: string;
-    location?: string;
-    description?: string;
-  };
-}
-
-export interface InternshipFilters {
-  search?: string;
-  location?: string;
-  skills?: string;
-  remote?: boolean;
-  type?: string;
-  duration?: string;
-  page?: number;
-  limit?: number;
-}
+import type {
+  Internship,
+  InternshipFilters,
+  InternshipListResponse,
+  CreateInternshipRequest,
+  UpdateInternshipRequest,
+  PaginationInfo
+} from '@/types';
 
 export interface InternshipState {
   internships: Internship[];
@@ -73,12 +18,7 @@ export interface InternshipState {
   isCreating: boolean;
   isUpdating: boolean;
   error: string | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: PaginationInfo;
   filters: InternshipFilters;
 }
 
@@ -87,7 +27,7 @@ export const fetchInternships = createAsyncThunk(
   'internship/fetchInternships',
   async (filters: InternshipFilters = {}, { rejectWithValue }) => {
     try {
-      const response = await internshipAPI.getAll(filters);
+      const response: InternshipListResponse = await internshipAPI.getAll(filters);
       return {
         internships: response.internships || [],
         pagination: response.pagination || {
@@ -117,7 +57,7 @@ export const fetchInternshipById = createAsyncThunk(
 
 export const createInternship = createAsyncThunk(
   'internship/createInternship',
-  async (internshipData: Partial<Internship>, { rejectWithValue }) => {
+  async (internshipData: CreateInternshipRequest, { rejectWithValue }) => {
     try {
       const response = await internshipAPI.create(internshipData);
       return response.internship;
@@ -129,7 +69,7 @@ export const createInternship = createAsyncThunk(
 
 export const updateInternship = createAsyncThunk(
   'internship/updateInternship',
-  async ({ id, data }: { id: string; data: Partial<Internship> }, { rejectWithValue }) => {
+  async ({ id, data }: { id: string; data: UpdateInternshipRequest }, { rejectWithValue }) => {
     try {
       const response = await internshipAPI.update(id, data);
       return response.internship;
@@ -217,6 +157,41 @@ const internshipSlice = createSlice({
         state.internships[index] = action.payload;
       }
     },
+    // FIX: Direct sync actions that other slices dispatch
+    syncSaveJobToInternshipSlice: (state, action: PayloadAction<{ internshipId: string; isSaved: boolean }>) => {
+      const { internshipId, isSaved } = action.payload;
+
+      // Update in internships list
+      const index = state.internships.findIndex(i => i._id === internshipId);
+      if (index !== -1) {
+        state.internships[index].is_saved = isSaved;
+      }
+
+      // Update in current internship
+      if (state.currentInternship && state.currentInternship._id === internshipId) {
+        state.currentInternship.is_saved = isSaved;
+      }
+
+      // Update in company internships if exists
+      const companyIndex = state.companyInternships.findIndex(i => i._id === internshipId);
+      if (companyIndex !== -1) {
+        state.companyInternships[companyIndex].is_saved = isSaved;
+      }
+    },
+    syncApplicationToInternshipSlice: (state, action: PayloadAction<{ internshipId: string; hasApplied: boolean }>) => {
+      const { internshipId, hasApplied } = action.payload;
+
+      // Update in internships list
+      const index = state.internships.findIndex(i => i._id === internshipId);
+      if (index !== -1) {
+        state.internships[index].has_applied = hasApplied;
+      }
+
+      // Update in current internship
+      if (state.currentInternship && state.currentInternship._id === internshipId) {
+        state.currentInternship.has_applied = hasApplied;
+      }
+    },
     toggleSavedStatus: (state, action: PayloadAction<{ _id: string; isSaved: boolean }>) => {
       const { _id, isSaved } = action.payload;
 
@@ -251,6 +226,20 @@ const internshipSlice = createSlice({
         state.currentInternship.has_applied = hasApplied;
       }
     },
+    updateApplicationsCount: (state, action: PayloadAction<{ _id: string; count: number }>) => {
+      const { _id, count } = action.payload;
+
+      // Update in internships list
+      const index = state.internships.findIndex(i => i._id === _id);
+      if (index !== -1) {
+        state.internships[index].applications_count = count;
+      }
+
+      // Update in current internship
+      if (state.currentInternship?._id === _id) {
+        state.currentInternship.applications_count = count;
+      }
+    },
     clearAllInternshipData: (state) => {
       state.internships = [];
       state.companyInternships = [];
@@ -268,11 +257,10 @@ const internshipSlice = createSlice({
       })
       .addCase(fetchInternships.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Normalize internship data to ensure both _id and id fields exist
         state.internships = action.payload.internships.map((internship: any) => ({
           ...internship,
           _id: internship._id || internship.id,
-          id: internship.id || internship._id,
+          id: internship.id || internship._id, // Keep id for frontend compatibility
         }));
         state.pagination = action.payload.pagination;
         state.error = null;
@@ -290,12 +278,11 @@ const internshipSlice = createSlice({
       })
       .addCase(fetchInternshipById.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Normalize internship data to ensure both _id and id fields exist
         const internship = action.payload;
         state.currentInternship = {
           ...internship,
           _id: internship._id || internship.id,
-          id: internship.id || internship._id,
+          id: internship.id || internship._id, // Keep id for frontend compatibility
         };
         state.error = null;
       })
@@ -386,6 +373,9 @@ export const {
   updateInternshipInList,
   toggleSavedStatus,
   toggleAppliedStatus,
+  updateApplicationsCount,
+  syncSaveJobToInternshipSlice,
+  syncApplicationToInternshipSlice,
   clearAllInternshipData,
 } = internshipSlice.actions;
 

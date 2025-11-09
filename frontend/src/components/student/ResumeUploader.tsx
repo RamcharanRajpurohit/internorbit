@@ -4,11 +4,12 @@ import { toast } from 'sonner';
 import { Upload, FileText, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getAuthToken } from '@/integrations/supabase/client';
+import type { Resume } from '@/types';
 
 interface ResumeUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (resume: any) => void;
+  onSuccess: (resume: Resume) => void;
 }
 
 export const ResumeUploader = ({

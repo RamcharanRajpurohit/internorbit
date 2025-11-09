@@ -19,15 +19,15 @@ const AuthCallback = () => {
 
   useEffect(() => {
     // Prevent multiple executions using both ref and sessionStorage
-    if (isProcessedRef.current) {
-      console.log('⚠️ AuthCallback already processed (ref), skipping');
-      return;
-    }
+    // if (isProcessedRef.current) {
+    //   console.log('⚠️ AuthCallback already processed (ref), skipping');
+    //   return;
+    // }
 
-    if (sessionStorage.getItem('authCallbackProcessed')) {
-      console.log('⚠️ AuthCallback already processed (sessionStorage), skipping');
-      return;
-    }
+    // if (sessionStorage.getItem('authCallbackProcessed')) {
+    //   console.log('⚠️ AuthCallback already processed (sessionStorage), skipping');
+    //   return;
+    // }
 
     const handleCallback = async () => {
       try {

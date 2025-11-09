@@ -296,7 +296,7 @@ const StudentProfile = () => {
       setPreviewOpen(true);
 
       const data = await resumeAPI.getStudentResume(resume.id, 'view');
-      setPreviewUrl(data.signed_url);
+      setPreviewUrl(data.url);
     } catch (error: any) {
       toast.error('Failed to load resume');
       setPreviewOpen(false);
@@ -310,7 +310,7 @@ const StudentProfile = () => {
       const data = await resumeAPI.getStudentResume(resume.id, 'download');
 
       const link = document.createElement('a');
-      link.href = data.signed_url;
+      link.href = data.url;
       link.download = resume.file_name || 'resume.pdf';
       link.click();
 

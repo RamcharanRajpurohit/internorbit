@@ -1,4 +1,30 @@
 import { supabase } from '@/integrations/supabase/client';
+import type {
+  AuthResponse,
+  InternshipListResponse,
+  Internship,
+  ApplicationListResponse,
+  ApplicationDetailResponse,
+  CreateApplicationRequest,
+  CreateApplicationResponse,
+  UpdateApplicationStatusRequest,
+  SavedJobsListResponse,
+  SaveJobResponse,
+  SwipeListResponse,
+  SwipeRecord,
+  StudentProfileResponse,
+  CompanyProfileResponse,
+  UpdateStudentProfileRequest,
+  UpdateCompanyProfileRequest,
+  ResumeListResponse,
+  StatsResponse,
+  InternshipFilters,
+  StudentSearchFilters,
+  CompanySearchFilters,
+  ResumeDiscoveryFilters,
+  CreateInternshipRequest,
+  UpdateInternshipRequest
+} from '@/types';
 
 const API_URL = import.meta.env.VITE_API_URI;
 
@@ -40,8 +66,8 @@ const apiCall = async (
 // ============ AUTH ENDPOINTS ============
 
 export const authAPI = {
-  getCurrentUser: () => apiCall('/auth/me'),
-  updateProfile: (data: any) => apiCall('/auth/me', {
+  getCurrentUser: (): Promise<AuthResponse> => apiCall('/auth/me'),
+  updateProfile: (data: any): Promise<AuthResponse> => apiCall('/auth/me', {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
@@ -50,14 +76,7 @@ export const authAPI = {
 // ============ INTERNSHIP ENDPOINTS ============
 
 export const internshipAPI = {
-  getAll: (params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    location?: string;
-    skills?: string;
-    remote?: boolean;
-  }) => {
+  getAll: (params?: InternshipFilters): Promise<InternshipListResponse> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
@@ -65,37 +84,34 @@ export const internshipAPI = {
     if (params?.location) query.append('location', params.location);
     if (params?.skills) query.append('skills', params.skills);
     if (params?.remote) query.append('remote', 'true');
-    
+
     return apiCall(`/internships${query.toString() ? '?' + query.toString() : ''}`);
   },
 
-  getById: (id: string) => apiCall(`/internships/${id}`),
+  getById: (id: string): Promise<{ internship: Internship }> => apiCall(`/internships/${id}`),
 
-  create: (data: any) => apiCall('/internships', {
+  create: (data: CreateInternshipRequest): Promise<{ internship: Internship }> => apiCall('/internships', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
 
-  update: (id: string, data: any) => apiCall(`/internships/${id}`, {
+  update: (id: string, data: UpdateInternshipRequest): Promise<{ internship: Internship }> => apiCall(`/internships/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
 
-  publish: (id: string) => apiCall(`/internships/${id}/publish`, {
+  publish: (id: string): Promise<void> => apiCall(`/internships/${id}/publish`, {
     method: 'PATCH',
   }),
 
-  delete: (id: string) => apiCall(`/internships/${id}`, {
+  delete: (id: string): Promise<void> => apiCall(`/internships/${id}`, {
     method: 'DELETE',
   }),
-  getAllByCompanyId: (params?: {
-    page?: number;
-    limit?: number;
-  }) => {
+  getAllByCompanyId: (params?: { page?: number; limit?: number }): Promise<{ internships: Internship[] }> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
-    
+
     return apiCall(`/internships/company${query.toString() ? '?' + query.toString() : ''}`);
   },
 };
@@ -107,12 +123,12 @@ export const applicationAPI = {
     page?: number;
     limit?: number;
     status?: string;
-  }) => {
+  }): Promise<ApplicationListResponse> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.status) query.append('status', params.status);
-    
+
     return apiCall(`/applications/student${query.toString() ? '?' + query.toString() : ''}`);
   },
 
@@ -120,34 +136,30 @@ export const applicationAPI = {
     page?: number;
     limit?: number;
     status?: string;
-  }) => {
+  }): Promise<ApplicationListResponse> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.status) query.append('status', params.status);
-    
+
     return apiCall(`/applications/company${query.toString() ? '?' + query.toString() : ''}`);
   },
 
-  create: (data: { 
-    internship_id: string; 
-    resume_id: string; // NEW: Now requires resume_id
-    cover_letter: string; 
-  }) =>
+  create: (data: CreateApplicationRequest): Promise<CreateApplicationResponse> =>
     apiCall('/applications', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  updateStatus: (id: string, status: string) =>
+  updateStatus: (id: string, data: UpdateApplicationStatusRequest): Promise<CreateApplicationResponse> =>
     apiCall(`/applications/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(data),
     }),
 
-  getById: (id: string) => apiCall(`/applications/${id}`),
+  getById: (id: string): Promise<ApplicationDetailResponse> => apiCall(`/applications/${id}`),
 
-  withdraw: (id: string) => apiCall(`/applications/${id}`, {
+  withdraw: (id: string): Promise<void> => apiCall(`/applications/${id}`, {
     method: 'DELETE',
   }),
 };
@@ -156,43 +168,43 @@ export const applicationAPI = {
 
 export const interactionAPI = {
   // Swipes
-  createSwipe: (internship_id: string, direction: 'left' | 'right') =>
+  createSwipe: (internship_id: string, direction: 'left' | 'right'): Promise<{ swipe: SwipeRecord }> =>
     apiCall('/interactions/swipes', {
       method: 'POST',
       body: JSON.stringify({ internship_id, direction }),
     }),
 
-  getSwipes: (params?: { page?: number; limit?: number; direction?: string }) => {
+  getSwipes: (params?: { page?: number; limit?: number; direction?: string }): Promise<SwipeListResponse> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.direction) query.append('direction', params.direction);
-    
+
     return apiCall(`/interactions/swipes${query.toString() ? '?' + query.toString() : ''}`);
   },
 
-  getSwipeStats: (internship_id: string) =>
+  getSwipeStats: (internship_id: string): Promise<StatsResponse> =>
     apiCall(`/interactions/swipes/stats/${internship_id}`),
 
   // Saved Jobs
-  saveJob: (internship_id: string) =>
+  saveJob: (internship_id: string): Promise<SaveJobResponse> =>
     apiCall('/interactions/saved-jobs', {
       method: 'POST',
       body: JSON.stringify({ internship_id }),
     }),
 
-  getSavedJobs: (params?: { page?: number; limit?: number }) => {
+  getSavedJobs: (params?: { page?: number; limit?: number }): Promise<SavedJobsListResponse> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
-    
+
     return apiCall(`/interactions/saved-jobs${query.toString() ? '?' + query.toString() : ''}`);
   },
 
-  checkIfSaved: (internship_id: string) =>
+  checkIfSaved: (internship_id: string): Promise<{ is_saved: boolean }> =>
     apiCall(`/interactions/saved-jobs/${internship_id}`),
 
-  unsaveJob: (internship_id: string) =>
+  unsaveJob: (internship_id: string): Promise<void> =>
     apiCall(`/interactions/saved-jobs/${internship_id}`, {
       method: 'DELETE',
     }),
@@ -201,120 +213,101 @@ export const interactionAPI = {
 // ============ PROFILE ENDPOINTS ============
 
 export const companyProfileAPI = {
-  getProfile: () => apiCall('/company-profile'),
+  getProfile: (): Promise<CompanyProfileResponse> => apiCall('/company-profile'),
 
-  createProfile: (data: any) => apiCall('/company-profile', {
+  createProfile: (data: any): Promise<CompanyProfileResponse> => apiCall('/company-profile', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
 
-  updateProfile: (data: any) => apiCall('/company-profile', {
+  updateProfile: (data: UpdateCompanyProfileRequest): Promise<CompanyProfileResponse> => apiCall('/company-profile', {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
 
-  getPublicProfile: (userId: string) =>
+  getPublicProfile: (userId: string): Promise<CompanyProfileResponse> =>
     apiCall(`/company-profile/public/${userId}`),
 
-  searchCompanies: (params?: {
-    query?: string;
-    industry?: string;
-    location?: string;
-    page?: number;
-    limit?: number;
-  }) => {
+  searchCompanies: (params?: CompanySearchFilters): Promise<{ companies: any[]; pagination: any }> => {
     const query = new URLSearchParams();
     if (params?.query) query.append('query', params.query);
     if (params?.industry) query.append('industry', params.industry);
     if (params?.location) query.append('location', params.location);
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
-    
+
     return apiCall(`/company-profile/search${query.toString() ? '?' + query.toString() : ''}`);
   },
 };
 
 export const studentProfileAPI = {
-  getProfile: () => apiCall('/student-profile'),
+  getProfile: (): Promise<StudentProfileResponse> => apiCall('/student-profile'),
 
-  createProfile: (data: any) => apiCall('/student-profile', {
+  createProfile: (data: any): Promise<StudentProfileResponse> => apiCall('/student-profile', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
 
-  updateProfile: (data: any) => apiCall('/student-profile', {
+  updateProfile: (data: UpdateStudentProfileRequest): Promise<StudentProfileResponse> => apiCall('/student-profile', {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
 
-  getPublicProfile: (userId: string) =>
+  getPublicProfile: (userId: string): Promise<StudentProfileResponse> =>
     apiCall(`/student-profile/public/${userId}`),
 
-  searchStudents: (params?: {
-    skills?: string;
-    university?: string;
-    graduation_year?: number;
-    page?: number;
-    limit?: number;
-  }) => {
+  searchStudents: (params?: StudentSearchFilters): Promise<{ students: any[]; pagination: any }> => {
     const query = new URLSearchParams();
     if (params?.skills) query.append('skills', params.skills);
     if (params?.university) query.append('university', params.university);
     if (params?.graduation_year) query.append('graduation_year', String(params.graduation_year));
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
-    
+
     return apiCall(`/student-profile/search${query.toString() ? '?' + query.toString() : ''}`);
   },
 };
 
-
 export const resumeAPI = {
-  getApplicationResume: (resumeId: string, applicationId: string, accessType: 'view' | 'download' = 'view') =>
+  getApplicationResume: (resumeId: string, applicationId: string, accessType: 'view' | 'download' = 'view'): Promise<{ url: string; access_token: string }> =>
     apiCall(`/resume/${resumeId}/access?application_id=${applicationId}&access_type=${accessType}`, {
       method: 'POST',
     }),
 
   // Get student's own resume for viewing
-  getStudentResume: (resumeId: string, accessType: 'view' | 'download' = 'view') =>
+  getStudentResume: (resumeId: string, accessType: 'view' | 'download' = 'view'): Promise<{ url: string; access_token: string }> =>
     apiCall(`/resume/${resumeId}/access?access_type=${accessType}`, {
       method: 'POST',
     }),
 
   // Get all student resumes
-  getStudentResumes: () =>
+  getStudentResumes: (): Promise<ResumeListResponse> =>
     apiCall('/resume', {
       method: 'GET',
     }),
 
   // Company discovers public resumes
-  discoverResumes: (params?: {
-    page?: number;
-    limit?: number;
-    skills?: string;
-    university?: string;
-  }) => {
+  discoverResumes: (params?: ResumeDiscoveryFilters): Promise<{ resumes: any[]; pagination: any }> => {
     const query = new URLSearchParams();
     if (params?.page) query.append('page', String(params.page));
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.skills) query.append('skills', params.skills);
     if (params?.university) query.append('university', params.university);
-    
+
     return apiCall(`/resume/discover${query.toString() ? '?' + query.toString() : ''}`);
   },
 
+  getStats: (): Promise<StatsResponse> => apiCall('/resume/stats'),
 
-  getStats: () => apiCall('/resume/stats'),
-  
-  updateVisibility: (resumeId: string, visibility: 'private' | 'public' | 'restricted') =>
+  updateVisibility: (resumeId: string, visibility: 'private' | 'public' | 'restricted'): Promise<{ resume: any }> =>
     apiCall(`/resume/${resumeId}/visibility`, {
       method: 'PATCH',
       body: JSON.stringify({ visibility }),
     }),
 
-  deleteResume: (resumeId: string) =>
+  deleteResume: (resumeId: string): Promise<void> =>
     apiCall(`/resume/${resumeId}`, { method: 'DELETE' }),
 
-  setPrimary: (resumeId: string) =>
+  setPrimary: (resumeId: string): Promise<{ resume: any }> =>
     apiCall(`/resume/${resumeId}/set-primary`, { method: 'PATCH' }),
 };

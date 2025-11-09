@@ -12,6 +12,7 @@ import {
 import { Loader } from "@/components/ui/Loader";
 import { useAuth } from "@/hooks/useAuth";
 import { useSavedJobs } from "@/hooks/useSaved";
+import { getCompanyData } from "@/lib/dataNormalization";
 
 const SavedInternships = () => {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ const SavedInternships = () => {
 
   // Debug and ensure savedJobs is an array - memoize to prevent unnecessary re-renders
   const savedJobsArray = useMemo(() => {
-    const jobs = Array.isArray(saved) ? saved : [];
+    const jobs = Array.isArray(saved) ? saved.filter(job => job !== null && job !== undefined) : [];
     console.log('💾 Saved jobs data:', jobs);
     return jobs;
   }, [saved]);
@@ -132,6 +133,11 @@ const SavedInternships = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {savedJobsArray.map((item, index) => {
+                // Additional safety check for null/undefined items
+                if (!item) {
+                  return null;
+                }
+
                 // Handle different data structures for internship
                 let internship = null;
 
@@ -139,7 +145,7 @@ const SavedInternships = () => {
                   internship = item.internship_id;
                 } else if (typeof item.internship === 'object' && item.internship) {
                   internship = item.internship;
-                } else if (item._id ) {
+                } else if (item._id) {
                   internship = item;
                 }
 
@@ -148,19 +154,12 @@ const SavedInternships = () => {
                   return null;
                 }
 
-                const internshipId = internship._id || internship.id || item._id || item.id;
+                const internshipId = internship._id || item._id;
 
-                // Handle company data safely
-                let companyName = "Company";
-                let companyLogo = null;
-
-                if (internship.company?.company_name) {
-                  companyName = internship.company.company_name;
-                  companyLogo = internship.company.logo_url;
-                } else if (internship.company_id && typeof internship.company_id === 'object') {
-                  companyName = internship.company_id.company_name || "Company";
-                  companyLogo = internship.company_id.logo_url;
-                }
+                // Handle company data safely using utility function
+                const company = getCompanyData(internship);
+                const companyName = company?.company_name || "Company";
+                const companyLogo = company?.logo_url;
 
                 return (
                   <Card
@@ -185,7 +184,7 @@ const SavedInternships = () => {
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-sm truncate">{companyName}</h3>
                             <p className="text-xs text-muted-foreground">
-                              Saved {new Date(item.saved_at).toLocaleDateString()}
+                              Saved {item.saved_at ? new Date(item.saved_at).toLocaleDateString() : 'Recently'}
                             </p>
                           </div>
                           <Button

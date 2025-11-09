@@ -10,8 +10,11 @@ import {
   fetchApplicationById,
   clearApplicationError,
 } from '@/store/slices/applicationSlice';
-
+import { addApplicationToList, removeApplicationFromList } from '@/store/slices/applicationSlice';
+import { toggleAppliedStatus, updateApplicationsCount } from '@/store/slices/internshipSlice';
 import { useAuth } from './useAuth';
+import { add } from 'date-fns';
+
 export const useStudentApplications = (autoFetch = true) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, isStudent } = useAuth();
@@ -48,9 +51,12 @@ export const useStudentApplications = (autoFetch = true) => {
       internship_id: string;
       resume_id: string;
       cover_letter: string;
-    }) => {
+    }, internshipData?: any) => {
       try {
-        return await dispatch(createApplication(applicationData)).unwrap();
+        const result = await dispatch(createApplication({ applicationData, internshipData })).unwrap();
+        dispatch(addApplicationToList(result));
+        return result;
+        // The thunk automatically dispatches toggleAppliedStatus to internshipSlice
       } catch (error: any) {
         throw error;
       }
@@ -62,6 +68,8 @@ export const useStudentApplications = (autoFetch = true) => {
     async (applicationId: string) => {
       try {
         await dispatch(withdrawApplication(applicationId)).unwrap();
+        dispatch(removeApplicationFromList(applicationId));
+        // The thunk automatically dispatches toggleAppliedStatus to internshipSlice
       } catch (error: any) {
         throw error;
       }
@@ -121,7 +129,12 @@ export const useCompanyApplications = (autoFetch = true) => {
   const handleUpdateStatus = useCallback(
     async (applicationId: string, status: string) => {
       try {
-        return await dispatch(updateApplicationStatus({ id: applicationId, status })).unwrap();
+        const result = await dispatch(updateApplicationStatus({ id: applicationId, status })).unwrap();
+        // The result should contain the updated count from the API response
+        if (result.applications_count !== undefined) {
+          dispatch(updateApplicationsCount({ _id: applicationId, count: result.applications_count }));
+        }
+        return result;
       } catch (error: any) {
         throw error;
       }
@@ -175,14 +188,14 @@ export const useApplicationDetail = (id?: string) => {
   );
 
   const handleUpdateStatus = useCallback(
-    async (status: string) => {
+    async (status: 'pending' | 'reviewed' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn') => {
       if (!currentApplication) {
         throw new Error('No application loaded');
       }
       try {
         return await dispatch(
           updateApplicationStatus({
-            id: currentApplication._id || currentApplication.id,
+            id: currentApplication._id,
             status,
           })
         ).unwrap();
