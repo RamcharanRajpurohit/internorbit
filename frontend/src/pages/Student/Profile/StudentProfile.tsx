@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useStudentProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,27 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import { resumeAPI } from "@/lib/api";
 import { ResumeUploader } from "@/components/student/ResumeUploader";
+import type { Resume } from "@/types";
 
-
-// Frontend display type (matching application page)
-interface Resume {
-  _id: string;
-  id: string; // Alias for _id
-  student_id: string;
-  user_id: string;
-  file_name: string;
-  file_path: string;
-  file_size: number;
-  mime_type: string;
-  visibility: 'private' | 'public' | 'restricted';
-  is_primary: boolean;
-  scan_status: 'pending' | 'clean' | 'rejected';
-  scan_message?: string;
-  uploaded_at: string;
-  updated_at: string;
-  views_count: number;
-  downloads_count: number;
-}
 
 // Backend API response type
 interface BackendProject {
@@ -127,12 +109,17 @@ const StudentProfile = () => {
 
   // Use our new state management hooks
   const { isAuthenticated, isStudent } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isStudent ? 'student' : null);
+  
   const {
     studentProfile: profile,
     isLoading,
     isUpdating,
     error,
     updateProfile,
+    refetch,
   } = useStudentProfile();
 
   const [saving, setSaving] = useState(false);
@@ -155,8 +142,8 @@ const StudentProfile = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
 
-  // Resumes
-  const [resumes, setResumes] = useState<Resume[]>([]);
+  // Resumes - use from Redux state instead of local state
+  const resumes = (profile?.resumes || []) as Resume[];
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   // Resume preview state
@@ -198,14 +185,7 @@ const StudentProfile = () => {
         avatar_url: profile.avatar_url || "",
       });
 
-      
       setSkills(profile.skills || []);
-      setResumes((profile.resumes || []).map((resume: any) => ({
-        ...resume,
-        id: resume._id || resume.id,
-        student_id: resume.student_id || resume.user_id,
-        user_id: resume.user_id || resume.student_id,
-      })));
       setProjects((profile.projects || []).map(mapBackendProjectToFrontend));
       setExperiences((profile.experiences || []).map(mapBackendExperienceToFrontend));
     }
@@ -217,9 +197,9 @@ const StudentProfile = () => {
       await updateProfile({
         ...formData,
         skills,
-        resumes,
         projects,
         experiences,
+        // Resumes are managed separately via resume endpoints, not here
       });
 
       toast.success("Profile updated successfully!");
@@ -247,8 +227,8 @@ const StudentProfile = () => {
   const handleSetPrimaryResume = async (resumeId: string) => {
     try {
       await resumeAPI.setPrimary(resumeId);
-      // Update local state
-      setResumes(resumes.map((r) => ({ ...r, is_primary: r._id === resumeId })));
+      // Reload resumes from Redux
+      await refetch();
       toast.success("Primary resume updated!");
     } catch (error: any) {
       toast.error(error.message || "Failed to set primary resume");
@@ -258,32 +238,17 @@ const StudentProfile = () => {
   const handleDeleteResume = async (resumeId: string) => {
     try {
       await resumeAPI.deleteResume(resumeId);
-      // Update local state
-      setResumes(resumes.filter((r) => r._id !== resumeId));
+      // Reload resumes from Redux
+      await refetch();
       toast.success("Resume deleted!");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete resume");
     }
   };
 
-  const handleResumeUploadSuccess = (newResume: Resume) => {
-    setResumes((prevResumes) => {
-      // If this is the first resume or it's marked as primary, update all others
-      const updatedResumes = prevResumes.map(r => ({
-        ...r,
-        is_primary: false
-      }));
-
-      // Map the new resume to include proper id
-      const mappedResume = {
-        ...newResume,
-        id: newResume._id || newResume.id,
-        student_id: newResume.student_id || newResume.user_id,
-        user_id: newResume.user_id || newResume.student_id,
-      };
-
-      return [...updatedResumes, mappedResume];
-    });
+  const handleResumeUploadSuccess = async (newResume: Resume) => {
+    // Reload resumes from Redux to get the latest state
+    await refetch();
     setShowUploadDialog(false);
     toast.success("Resume uploaded successfully!");
   };
@@ -295,8 +260,26 @@ const StudentProfile = () => {
       setPreviewLoading(true);
       setPreviewOpen(true);
 
-      const data = await resumeAPI.getStudentResume(resume.id, 'view');
-      setPreviewUrl(data.url);
+      const token = await (await import('@/integrations/supabase/client')).getAuthToken();
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URI}/resume/${resume._id}/access`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ access_type: 'view' }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error);
+      }
+
+      const data = await response.json();
+      setPreviewUrl(data.signed_url);
     } catch (error: any) {
       toast.error('Failed to load resume');
       setPreviewOpen(false);
@@ -307,10 +290,28 @@ const StudentProfile = () => {
 
   const handleDownloadResume = async (resume: Resume) => {
     try {
-      const data = await resumeAPI.getStudentResume(resume.id, 'download');
+      const token = await (await import('@/integrations/supabase/client')).getAuthToken();
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URI}/resume/${resume._id}/access`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ access_type: 'download' }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error);
+      }
+
+      const data = await response.json();
 
       const link = document.createElement('a');
-      link.href = data.url;
+      link.href = data.signed_url;
       link.download = resume.file_name || 'resume.pdf';
       link.click();
 
@@ -372,12 +373,12 @@ const StudentProfile = () => {
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-8 animate-slide-up">
-            <div className="bg-gradient-card rounded-2xl p-8 border border-border shadow-card">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div className="bg-gradient-card rounded-2xl p-4 sm:p-8 border border-border shadow-card">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6">
                 <div className="relative">
-                  <Avatar className="w-24 h-24 ring-4 ring-border shadow-lg">
+                  <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-border shadow-lg">
                     <AvatarImage src={formData.avatar_url} />
-                    <AvatarFallback className="bg-gradient-primary text-primary-foreground text-3xl">
+                    <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl sm:text-3xl">
                       {profile?.user?.full_name?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
@@ -392,32 +393,32 @@ const StudentProfile = () => {
                   )}
                 </div>
 
-                <div className="flex-1 text-center md:text-left">
+                <div className="flex-1 text-center md:text-left min-w-0">
                   <div className="mb-2">
-                    <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-1">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-1 break-words">
                       {profile?.user?.full_name || "Profile"}
                     </h1>
-                    <p className="text-lg text-muted-foreground flex items-center justify-center md:justify-start gap-2">
-                      <Mail className="w-4 h-4" />
-                      {profile?.user?.email}
+                    <p className="text-sm sm:text-base md:text-lg text-muted-foreground flex items-center justify-center md:justify-start gap-2 flex-wrap break-all">
+                      <Mail className="w-4 h-4 flex-shrink-0" />
+                      <span className="break-all">{profile?.user?.email}</span>
                     </p>
                   </div>
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 break-words">
                     {formData.degree} {formData.university && `at ${formData.university}`}
                   </p>
 
                   {/* Quick Stats */}
-                  <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm">
+                  <div className="flex flex-wrap gap-3 sm:gap-4 justify-center md:justify-start text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-primary" />
+                      <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       <span className="font-medium">{experiences.length} Experience</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" />
+                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       <span className="font-medium">{projects.length} Projects</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4 text-primary" />
+                      <Upload className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       <span className="font-medium">{resumes.length} Resumes</span>
                     </div>
                   </div>
@@ -426,7 +427,7 @@ const StudentProfile = () => {
                 <Button
                   onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
                   disabled={saving}
-                  className="bg-gradient-primary hover:shadow-glow transition-all px-6 py-3"
+                  className="bg-gradient-primary hover:shadow-glow transition-all px-4 sm:px-6 py-2 sm:py-3 w-full md:w-auto text-sm sm:text-base"
                 >
                   {isEditing ? (
                     <>
@@ -445,28 +446,30 @@ const StudentProfile = () => {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl">
-              <TabsTrigger value="overview" className="rounded-lg">
-                <User className="w-4 h-4 mr-2" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="education" className="rounded-lg">
-                <GraduationCap className="w-4 h-4 mr-2" />
-                Education
-              </TabsTrigger>
-              <TabsTrigger value="experience" className="rounded-lg">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Experience
-              </TabsTrigger>
-              <TabsTrigger value="projects" className="rounded-lg">
-                <FileText className="w-4 h-4 mr-2" />
-                Projects
-              </TabsTrigger>
-              <TabsTrigger value="resumes" className="rounded-lg">
-                <Upload className="w-4 h-4 mr-2" />
-                Resumes
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5 bg-muted/50 p-1 rounded-xl">
+                <TabsTrigger value="overview" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="education" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Education
+                </TabsTrigger>
+                <TabsTrigger value="experience" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Experience
+                </TabsTrigger>
+                <TabsTrigger value="projects" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Projects
+                </TabsTrigger>
+                <TabsTrigger value="resumes" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Resumes
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Overview Tab */}
             <TabsContent value="overview">
@@ -878,18 +881,18 @@ const StudentProfile = () => {
             <TabsContent value="resumes">
               <Card className="shadow-card">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Resumes</CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <CardTitle className="text-lg sm:text-xl">Resumes</CardTitle>
                     <div className="flex gap-2">
                       {isEditing && (
                         <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                           <DialogTrigger asChild>
-                            <Button size="sm">
+                            <Button size="sm" className="w-full sm:w-auto">
                               <Plus className="w-4 h-4 mr-2" />
                               Upload Resume
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="w-[95vw] max-w-lg">
                             <DialogHeader>
                               <DialogTitle>Upload Resume</DialogTitle>
                             </DialogHeader>
@@ -907,19 +910,19 @@ const StudentProfile = () => {
                 <CardContent>
                   {resumes.length === 0 ? (
                     <div className="text-center py-12">
-                      <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground mb-4">
+                      <Upload className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-sm sm:text-base text-muted-foreground mb-4">
                         No resumes uploaded yet
                       </p>
                       {isEditing && (
                         <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                           <DialogTrigger asChild>
-                            <Button className="bg-gradient-primary">
+                            <Button className="bg-gradient-primary w-full sm:w-auto">
                               <Upload className="w-4 h-4 mr-2" />
                               Upload Your First Resume
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="w-[95vw] max-w-lg">
                             <DialogHeader>
                               <DialogTitle>Upload Resume</DialogTitle>
                             </DialogHeader>
@@ -937,42 +940,39 @@ const StudentProfile = () => {
                       {resumes.map((resume) => (
                         <div
                           key={resume._id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:border-primary transition-colors"
+                          className="flex items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border rounded-lg hover:border-primary transition-colors bg-background"
                         >
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-5 h-5 text-primary" />
-                            <div>
-                              <p className="font-medium">{resume.file_name}</p>
+                          <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+                            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
+                            <div className="min-w-0 flex-1">
+                              <p 
+                                className="text-xs sm:text-sm font-medium truncate" 
+                                title={resume.file_name}
+                              >
+                                {resume.file_name}
+                              </p>
                               <p className="text-xs text-muted-foreground">
-                                Uploaded {new Date(resume.uploaded_at).toLocaleDateString()}
-                                {resume.file_size && ` • ${(resume.file_size / 1024 / 1024).toFixed(2)} MB`}
-                                {resume.scan_status === 'pending' && ' • Scanning...'}
-                                {resume.scan_status === 'rejected' && ` • Rejected: ${resume.scan_message}`}
+                                {new Date(resume.uploaded_at).toLocaleDateString()}
+                                {resume.is_primary && ' • Primary'}
                               </p>
                             </div>
-                            {resume.is_primary && (
-                              <Badge variant="default">Primary</Badge>
-                            )}
-                            {resume.scan_status === 'rejected' && (
-                              <Badge variant="destructive">Rejected</Badge>
-                            )}
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleViewResume(resume)}
+                              className="flex-shrink-0 h-8 w-8 p-0"
                             >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
+                              <Eye className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleDownloadResume(resume)}
+                              className="flex-shrink-0 h-8 w-8 p-0"
                             >
-                              <Download className="w-4 h-4 mr-1" />
-                              Download
+                              <Download className="w-4 h-4" />
                             </Button>
                             {isEditing && (
                               <>
@@ -981,6 +981,7 @@ const StudentProfile = () => {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleSetPrimaryResume(resume._id)}
+                                    className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap"
                                   >
                                     Set Primary
                                   </Button>
@@ -989,6 +990,7 @@ const StudentProfile = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDeleteResume(resume._id)}
+                                  className="flex-shrink-0 h-8 w-8 p-0"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -1006,25 +1008,32 @@ const StudentProfile = () => {
 
           {/* Resume Preview Dialog */}
           <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh]">
-              <DialogHeader>
-                <DialogTitle>Resume Preview</DialogTitle>
+            <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:max-h-[90vh] flex flex-col p-0">
+              <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b">
+                <DialogTitle className="text-base sm:text-lg pr-8">
+                  Resume Preview
+                  {previewResume && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate" title={previewResume.file_name}>
+                      {previewResume.file_name}
+                    </p>
+                  )}
+                </DialogTitle>
               </DialogHeader>
               {previewLoading ? (
-                <div className="flex items-center justify-center h-96">
+                <div className="flex items-center justify-center flex-1 min-h-[300px]">
                   <Loader />
                 </div>
               ) : previewUrl ? (
-                <div className="w-full h-[80vh]">
+                <div className="flex-1 overflow-hidden">
                   <iframe
                     src={previewUrl}
-                    className="w-full h-full border-0 rounded-md"
+                    className="w-full h-full border-0"
                     title="Resume Preview"
                   />
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-96">
-                  <p className="text-muted-foreground">Failed to load resume</p>
+                <div className="flex items-center justify-center flex-1 min-h-[300px] p-4">
+                  <p className="text-sm sm:text-base text-muted-foreground">Failed to load resume</p>
                 </div>
               )}
             </DialogContent>

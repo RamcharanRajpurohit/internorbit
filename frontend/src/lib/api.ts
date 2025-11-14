@@ -7,6 +7,7 @@ import type {
   ApplicationDetailResponse,
   CreateApplicationRequest,
   CreateApplicationResponse,
+  WithdrawApplicationResponse,
   UpdateApplicationStatusRequest,
   SavedJobsListResponse,
   SaveJobResponse,
@@ -159,7 +160,7 @@ export const applicationAPI = {
 
   getById: (id: string): Promise<ApplicationDetailResponse> => apiCall(`/applications/${id}`),
 
-  withdraw: (id: string): Promise<void> => apiCall(`/applications/${id}`, {
+  withdraw: (id: string): Promise<WithdrawApplicationResponse> => apiCall(`/applications/${id}`, {
     method: 'DELETE',
   }),
 };
@@ -204,7 +205,7 @@ export const interactionAPI = {
   checkIfSaved: (internship_id: string): Promise<{ is_saved: boolean }> =>
     apiCall(`/interactions/saved-jobs/${internship_id}`),
 
-  unsaveJob: (internship_id: string): Promise<void> =>
+  unsaveJob: (internship_id: string): Promise<SaveJobResponse> =>
     apiCall(`/interactions/saved-jobs/${internship_id}`, {
       method: 'DELETE',
     }),
@@ -282,7 +283,7 @@ export const resumeAPI = {
 
   // Get all student resumes
   getStudentResumes: (): Promise<ResumeListResponse> =>
-    apiCall('/resume', {
+    apiCall('/resume/my-resumes', {
       method: 'GET',
     }),
 

@@ -1,6 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { interactionAPI } from '@/lib/api';
 import { extractSavedJob } from '@/lib/dataNormalization';
+import { 
+  updateInternshipInList, 
+  syncSaveJobToInternshipSlice as syncSaveToInternshipSlice 
+} from './internshipSlice';
 import type {
   SavedJob,
   SwipeRecord,
@@ -49,27 +53,33 @@ export const saveJob = createAsyncThunk(
     try {
       const response: SaveJobResponse = await interactionAPI.saveJob(internship_id);
 
-      // Dispatch sync to internshipSlice
-      dispatch(syncSaveJobToInternshipSlice({
-        internshipId: internship_id,
-        isSaved: true
-      }));
+      // Use FULL internship data from response
+      const internshipFromResponse = response.internship || internshipData;
+
+      if (internshipFromResponse) {
+        // Update internship slice with is_saved: true
+        dispatch(syncSaveToInternshipSlice({
+          internshipId: internshipFromResponse._id || internship_id,
+          isSaved: true
+        }));
+
+        // Update the internship in the list with full data
+        dispatch(updateInternshipInList({
+          ...internshipFromResponse,
+          is_saved: true
+        }));
+      }
 
       const normalizedSavedJob = extractSavedJob(response.saved);
       if (!normalizedSavedJob) {
         throw new Error('Invalid saved job response');
       }
 
-      // If internship data is provided, merge it with the saved job response
-      if (internshipData) {
-        return {
-          ...normalizedSavedJob, // Backend response (student_id, _id, saved_at, etc.)
-          internship_id: internshipData._id || internship_id,
-          internship: internshipData, // Full internship data from dashboard
-        };
-      }
-
-      return normalizedSavedJob;
+      return {
+        ...normalizedSavedJob,
+        internship_id: internshipFromResponse?._id || internship_id,
+        internship: internshipFromResponse || internshipData,
+      };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to save job');
     }
@@ -80,13 +90,30 @@ export const unsaveJob = createAsyncThunk(
   'interaction/unsaveJob',
   async (internship_id: string, { rejectWithValue, dispatch }) => {
     try {
-      await interactionAPI.unsaveJob(internship_id);
+      const response = await interactionAPI.unsaveJob(internship_id);
 
-      // Dispatch sync to internshipSlice
-      dispatch(syncSaveJobToInternshipSlice({
-        internshipId: internship_id,
-        isSaved: false
-      }));
+      // Use FULL internship data from response
+      const internshipFromResponse = response?.internship;
+
+      if (internshipFromResponse) {
+        // Update internship slice with is_saved: false
+        dispatch(syncSaveToInternshipSlice({
+          internshipId: internshipFromResponse._id || internship_id,
+          isSaved: false
+        }));
+
+        // Update the internship in the list with full data
+        dispatch(updateInternshipInList({
+          ...internshipFromResponse,
+          is_saved: false
+        }));
+      } else {
+        // Fallback if no internship data in response
+        dispatch(syncSaveToInternshipSlice({
+          internshipId: internship_id,
+          isSaved: false
+        }));
+      }
 
       return internship_id;
     } catch (error: any) {
@@ -161,6 +188,29 @@ const interactionSlice = createSlice({
     syncSaveJobToInternshipSlice: (state, _action: PayloadAction<{ internshipId: string; isSaved: boolean }>) => {
       // This reducer exists to allow dispatching cross-slice updates
       // The actual update happens in internshipSlice
+    },
+    // NEW: Sync application status to saved jobs list
+    syncApplicationToSavedJobs: (state, action: PayloadAction<{ internshipId: string; hasApplied: boolean }>) => {
+      const { internshipId, hasApplied } = action.payload;
+      
+      // Update has_applied flag in saved jobs list
+      state.savedJobs.forEach((savedJob) => {
+        const jobInternshipId = typeof savedJob.internship_id === 'object'
+          ? savedJob.internship_id._id
+          : savedJob.internship_id;
+        
+        // Update if this saved job is for the internship
+        if (jobInternshipId === internshipId) {
+          // Update the populated internship object if it exists
+          if (savedJob.internship && typeof savedJob.internship === 'object') {
+            savedJob.internship.has_applied = hasApplied;
+          }
+          // Also update the internship_id if it's a populated object
+          if (typeof savedJob.internship_id === 'object') {
+            savedJob.internship_id.has_applied = hasApplied;
+          }
+        }
+      });
     },
     // NEW: Manually add saved job to list WITHOUT refetch
     addSavedJobToList: (state, action: PayloadAction<SavedJob>) => {
@@ -283,6 +333,7 @@ export const {
   clearAllInteractionData,
   resetSavedJobs,
   syncSaveJobToInternshipSlice,
+  syncApplicationToSavedJobs,
   addSavedJobToList,
   removeSavedJobFromList,
 } = interactionSlice.actions;

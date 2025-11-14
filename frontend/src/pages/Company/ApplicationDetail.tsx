@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { resumeAPI } from '@/lib/api';
 import { useApplicationDetail } from '@/hooks/useApplications';
+import { ApplicationStatus } from '@/types';
 
 const ApplicationDetail = () => {
   const { id } = useParams();
@@ -60,7 +61,7 @@ const ApplicationDetail = () => {
         'view'
       );
 
-      setPreviewUrl(data.signed_url);
+      setPreviewUrl(data.url);
     } catch (error: any) {
       toast.error('Failed to load resume');
       setPreviewOpen(false);
@@ -84,7 +85,7 @@ const ApplicationDetail = () => {
       );
 
       const link = document.createElement('a');
-      link.href = data.signed_url;
+      link.href = data.url;
       link.download = typeof application.resume_id === 'object'
         ? application.resume_id.file_name || 'resume.pdf'
         : 'resume.pdf';
@@ -96,7 +97,7 @@ const ApplicationDetail = () => {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: ApplicationStatus) => {
     try {
       await updateStatus(newStatus);
       toast.success('Status updated');
@@ -127,6 +128,10 @@ const ApplicationDetail = () => {
   const student = application.student;
 
   // Type helper functions
+  const isStudentObject = (student: any): student is { _id: string; user_id: string; full_name: string; email: string; avatar_url?: string; university?: string; degree?: string; graduation_year?: number; location?: string; phone?: string; linkedin_url?: string; github_url?: string; bio?: string; skills?: string[]; } => {
+    return typeof student === 'object' && student !== null && 'full_name' in student;
+  };
+
   const isResumeObject = (resume: any): resume is { _id: string; file_name: string; file_size?: number; scan_status: 'clean' | 'pending' | 'flagged'; views_count?: number; downloads_count?: number; } => {
     return typeof resume === 'object' && resume !== null && '_id' in resume;
   };
@@ -135,11 +140,12 @@ const ApplicationDetail = () => {
     return typeof internship === 'object' && internship !== null && 'title' in internship;
   };
 
+  const studentObj = isStudentObject(student) ? student : null;
   const resume = isResumeObject(application.resume_id) ? application.resume_id : null;
   const internship = isInternshipObject(application.internship_id) ? application.internship_id : null;
 
-  const studentName = student?.full_name || 'Unknown Student';
-  const studentEmail = student?.email || 'N/A';
+  const studentName = studentObj?.full_name || 'Unknown Student';
+  const studentEmail = studentObj?.email || 'N/A';
 
   return (
     <>
@@ -157,9 +163,9 @@ const ApplicationDetail = () => {
               <CardHeader className="mb-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
-                    {student?.avatar_url ? (
+                    {studentObj?.avatar_url ? (
                       <img
-                        src={student.avatar_url}
+                        src={studentObj.avatar_url}
                         alt={studentName}
                         className="w-16 h-16 rounded-full object-cover"
                       />
@@ -200,63 +206,63 @@ const ApplicationDetail = () => {
                 <div>
                   <h3 className="font-bold text-lg mb-3">Student Profile</h3>
                   <div className="bg-muted rounded-lg p-4 space-y-3">
-                    {student?.university && (
+                    {studentObj?.university && (
                       <div className="flex items-start gap-2">
                         <GraduationCap className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">University</p>
-                          <p className="text-sm text-muted-foreground">{student.university}</p>
+                          <p className="text-sm text-muted-foreground">{studentObj.university}</p>
                         </div>
                       </div>
                     )}
 
-                    {student?.degree && (
+                    {studentObj?.degree && (
                       <div className="flex items-start gap-2">
                         <GraduationCap className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Degree</p>
-                          <p className="text-sm text-muted-foreground">{student.degree}</p>
+                          <p className="text-sm text-muted-foreground">{studentObj.degree}</p>
                         </div>
                       </div>
                     )}
 
-                    {student?.graduation_year && (
+                    {studentObj?.graduation_year && (
                       <div className="flex items-start gap-2">
                         <GraduationCap className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Graduation Year</p>
-                          <p className="text-sm text-muted-foreground">{student.graduation_year}</p>
+                          <p className="text-sm text-muted-foreground">{studentObj.graduation_year}</p>
                         </div>
                       </div>
                     )}
 
-                    {student?.location && (
+                    {studentObj?.location && (
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Location</p>
-                          <p className="text-sm text-muted-foreground">{student.location}</p>
+                          <p className="text-sm text-muted-foreground">{studentObj.location}</p>
                         </div>
                       </div>
                     )}
 
-                    {student?.phone && (
+                    {studentObj?.phone && (
                       <div className="flex items-start gap-2">
                         <Phone className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Phone</p>
-                          <p className="text-sm text-muted-foreground">{student.phone}</p>
+                          <p className="text-sm text-muted-foreground">{studentObj.phone}</p>
                         </div>
                       </div>
                     )}
 
-                    {student?.linkedin_url && (
+                    {studentObj?.linkedin_url && (
                       <div className="flex items-start gap-2">
                         <LinkedInIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">LinkedIn</p>
                           <a
-                            href={student.linkedin_url}
+                            href={studentObj.linkedin_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-primary hover:underline"
@@ -267,13 +273,13 @@ const ApplicationDetail = () => {
                       </div>
                     )}
 
-                    {student?.github_url && (
+                    {studentObj?.github_url && (
                       <div className="flex items-start gap-2">
                         <GitHubIcon className="w-4 h-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">GitHub</p>
                           <a
-                            href={student.github_url}
+                            href={studentObj.github_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-primary hover:underline"
@@ -287,23 +293,23 @@ const ApplicationDetail = () => {
                 </div>
 
                 {/* Bio */}
-                {student?.bio && (
+                {studentObj?.bio && (
                   <div>
                     <h3 className="font-bold text-lg mb-2">Bio</h3>
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {student.bio}
+                        {studentObj.bio}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Skills */}
-                {Array.isArray(student?.skills) && student.skills.length > 0 && (
+                {Array.isArray(studentObj?.skills) && studentObj.skills.length > 0 && (
                   <div>
                     <h3 className="font-bold text-lg mb-2">Skills</h3>
                     <div className="flex flex-wrap gap-2">
-                      {student.skills.map((skill: string, index: number) => (
+                      {studentObj.skills.map((skill: string, index: number) => (
                         <Badge key={index} variant="secondary">
                           {skill}
                         </Badge>
@@ -410,13 +416,13 @@ const ApplicationDetail = () => {
                 <div className="border-t pt-6">
                   <h3 className="font-bold text-lg mb-4">Update Status</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: 'pending', label: 'Pending', color: 'bg-yellow-100 hover:bg-yellow-200' },
-                      { value: 'reviewed', label: 'Reviewed', color: 'bg-blue-100 hover:bg-blue-200' },
-                      { value: 'shortlisted', label: 'Shortlisted', color: 'bg-green-100 hover:bg-green-200' },
-                      { value: 'accepted', label: 'Accepted', color: 'bg-emerald-100 hover:bg-emerald-200' },
-                      { value: 'rejected', label: 'Rejected', color: 'bg-red-100 hover:bg-red-200' },
-                    ].map((status) => (
+                    {([
+                      { value: 'pending' as const, label: 'Pending', color: 'bg-yellow-100 hover:bg-yellow-200' },
+                      { value: 'reviewed' as const, label: 'Reviewed', color: 'bg-blue-100 hover:bg-blue-200' },
+                      { value: 'shortlisted' as const, label: 'Shortlisted', color: 'bg-green-100 hover:bg-green-200' },
+                      { value: 'accepted' as const, label: 'Accepted', color: 'bg-emerald-100 hover:bg-emerald-200' },
+                      { value: 'rejected' as const, label: 'Rejected', color: 'bg-red-100 hover:bg-red-200' },
+                    ]).map((status) => (
                       <Button
                         key={status.value}
                         onClick={() => handleStatusChange(status.value)}

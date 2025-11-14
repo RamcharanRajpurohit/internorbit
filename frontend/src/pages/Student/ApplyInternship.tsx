@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { internshipAPI, applicationAPI, resumeAPI } from '@/lib/api';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ const ApplyInternship = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { createApplication } = useStudentApplications(false);
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [internship, setInternship] = useState<any>(null);
@@ -50,7 +52,18 @@ const ApplyInternship = () => {
   const loadInternship = async () => {
     try {
       const response = await internshipAPI.getById(id!);
-      setInternship(response.internship);
+      const internshipData = response.internship;
+      
+      // Check if already applied
+      if (internshipData.has_applied) {
+        toast.info('You have already applied to this internship');
+        setTimeout(() => {
+          navigate(`/internship/${id}`);
+        }, 1500);
+        return;
+      }
+      
+      setInternship(internshipData);
     } catch (error: any) {
       toast.error('Failed to load internship');
       navigate('/');
@@ -178,27 +191,29 @@ const ApplyInternship = () => {
 
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
+            {!isMobile && (
+              <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            )}
 
-            <Card className="p-8 shadow-elevated">
+            <Card className="p-4 sm:p-8 shadow-elevated">
               <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words">
                   Apply for {internship.title}
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground break-words">
                   at {company?.company_name || 'Company'}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Resume Selection - IMPROVED */}
-                <div className="space-y-3 p-4 bg-muted rounded-lg border-2 border-border">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <Label className="text-base font-semibold">
+                <div className="space-y-3 p-3 sm:p-4 bg-muted rounded-lg border-2 border-border overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <Label className="text-sm sm:text-base font-semibold">
                         Select or Upload Resume *
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -207,12 +222,12 @@ const ApplyInternship = () => {
                     </div>
                     <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                       <DialogTrigger asChild>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" className="w-full sm:w-auto flex-shrink-0">
                           <Plus className="w-4 h-4 mr-2" />
-                          New Resume
+                          <span className="sm:inline">New Resume</span>
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="w-[95vw] max-w-lg">
                         <DialogHeader>
                           <DialogTitle>Upload Resume</DialogTitle>
                         </DialogHeader>
@@ -233,12 +248,12 @@ const ApplyInternship = () => {
                       </p>
                       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                         <DialogTrigger asChild>
-                          <Button className="bg-gradient-primary">
+                          <Button className="bg-gradient-primary w-full sm:w-auto">
                             <Upload className="w-4 h-4 mr-2" />
                             Upload Resume
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] max-w-lg">
                           <DialogHeader>
                             <DialogTitle>Upload Resume</DialogTitle>
                           </DialogHeader>
@@ -252,25 +267,30 @@ const ApplyInternship = () => {
                     </div>
                   ) : (
                     <RadioGroup value={selectedResumeId} onValueChange={setSelectedResumeId}>
-                      <div className="space-y-2">
+                      <div className="space-y-2 overflow-hidden">
                         {resumes.map((resume) => (
                           <div
                             key={resume._id}
-                            className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary transition-colors"
+                            className="flex items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border rounded-lg hover:border-primary transition-colors bg-background"
                           >
-                            <RadioGroupItem value={resume._id} id={resume._id} />
-                            <label htmlFor={resume._id} className="flex-1 cursor-pointer">
-                              <div className="flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">{resume.file_name}</p>
+                            <RadioGroupItem value={resume._id} id={resume._id} className="flex-shrink-0 mt-1 sm:mt-0" />
+                            <label htmlFor={resume._id} className="flex-1 cursor-pointer min-w-0">
+                              <div className="flex items-start sm:items-center gap-2">
+                                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
+                                <div className="min-w-0 flex-1">
+                                  <p 
+                                    className="text-xs sm:text-sm font-medium truncate" 
+                                    title={resume.file_name}
+                                  >
+                                    {resume.file_name}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {resume.scan_status === 'clean'
+                                    {/* {resume.scan_status === 'clean'
                                       ? '✓ Verified'
                                       : resume.scan_status === 'pending'
                                       ? '⏳ Scanning...'
                                       : '⚠ Not approved'}
-                                    {' • '}
+                                    {' • '} */}
                                     {new Date(resume.uploaded_at).toLocaleDateString()}
                                     {resume.is_primary && ' • Primary'}
                                   </p>
@@ -283,6 +303,7 @@ const ApplyInternship = () => {
                               variant="ghost"
                               onClick={() => handlePreviewResume(resume)}
                               disabled={resume.scan_status !== 'clean'}
+                              className="flex-shrink-0 h-8 w-8 p-0"
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -295,7 +316,7 @@ const ApplyInternship = () => {
 
                 {/* Cover Letter */}
                 <div className="space-y-2">
-                  <Label htmlFor="cover_letter" className="text-base">
+                  <Label htmlFor="cover_letter" className="text-sm sm:text-base">
                     Cover Letter *
                   </Label>
                   <Textarea
@@ -307,7 +328,7 @@ const ApplyInternship = () => {
                     }
                     rows={6}
                     required
-                    className="resize-none"
+                    className="resize-none text-sm sm:text-base"
                   />
                   <p className="text-xs text-muted-foreground">
                     {formData.cover_letter.length} / 5000 characters
@@ -315,10 +336,10 @@ const ApplyInternship = () => {
                 </div>
 
                 {/* Tips */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-700">
-                    <p className="font-medium mb-1">Tips for a great application:</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 flex gap-2 sm:gap-3">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-700 min-w-0">
+                    <p className="font-medium mb-1 text-xs sm:text-sm">Tips for a great application:</p>
                     <ul className="space-y-1 text-xs">
                       <li>• Personalize each cover letter</li>
                       <li>• Highlight relevant projects and skills</li>
@@ -330,10 +351,10 @@ const ApplyInternship = () => {
                 <Button
                   type="submit"
                   disabled={submitting || !selectedResumeId}
-                  className="w-full bg-gradient-primary text-lg h-11"
+                  className="w-full bg-gradient-primary text-base sm:text-lg h-10 sm:h-11"
                   size="lg"
                 >
-                  <Send className="w-5 h-5 mr-2" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   {submitting ? 'Submitting...' : 'Submit Application'}
                 </Button>
               </form>
@@ -344,19 +365,19 @@ const ApplyInternship = () => {
 
       {/* Resume Preview Modal - ENHANCED */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-7xl w-[95vw] h-[95vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b sticky top-0 bg-background z-10">
-            <div className="flex-1">
-              <DialogTitle>Resume Preview</DialogTitle>
+        <DialogContent className="w-[95vw] max-w-7xl h-[90vh] sm:h-[95vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="flex flex-row items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b sticky top-0 bg-background z-10">
+            <div className="flex-1 min-w-0 pr-2">
+              <DialogTitle className="text-base sm:text-lg">Resume Preview</DialogTitle>
               {previewResume && (
-                <p className="text-xs text-muted-foreground mt-1">{previewResume.file_name}</p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">{previewResume.file_name}</p>
               )}
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setPreviewOpen(false)}
-              className="h-8 w-8 p-0 ml-2 flex-shrink-0"
+              className="h-8 w-8 p-0 flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -371,19 +392,19 @@ const ApplyInternship = () => {
               {previewResume?.file_name?.endsWith('.pdf') ? (
                 <iframe
                   src={previewUrl}
-                  className="w-full h-full min-h-[500px]"
+                  className="w-full h-full min-h-[400px] sm:min-h-[500px]"
                   title={previewResume?.file_name}
                 />
               ) : (
-                <div className="p-8 bg-white h-full flex flex-col items-center justify-center min-h-[500px]">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 max-w-md">
-                    <p className="text-sm text-blue-800">
+                <div className="p-4 sm:p-8 bg-white h-full flex flex-col items-center justify-center min-h-[400px] sm:min-h-[500px]">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 max-w-md w-full">
+                    <p className="text-xs sm:text-sm text-blue-800">
                       <strong>Note:</strong> Word documents (.docx, .doc) cannot be previewed in the browser. Please download the file to view the full content and formatting.
                     </p>
                   </div>
                   <Button
                     onClick={() => window.open(previewUrl, '_blank')}
-                    className="gap-2 bg-gradient-primary"
+                    className="gap-2 bg-gradient-primary w-full sm:w-auto"
                     size="lg"
                   >
                     <Download className="w-4 h-4" />
@@ -393,23 +414,24 @@ const ApplyInternship = () => {
               )}
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 p-8">
-              <p className="text-muted-foreground">Unable to load preview</p>
+            <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 sm:p-8">
+              <p className="text-sm sm:text-base text-muted-foreground">Unable to load preview</p>
             </div>
           )}
 
           {/* Footer with Actions */}
-          <div className="border-t px-6 py-4 bg-background sticky bottom-0 flex justify-end gap-2">
+          <div className="border-t px-4 sm:px-6 py-3 sm:py-4 bg-background sticky bottom-0 flex flex-col sm:flex-row justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setPreviewOpen(false)}
+              className="w-full sm:w-auto"
             >
               Close
             </Button>
             {previewUrl && (
               <Button
                 onClick={() => window.open(previewUrl, '_blank')}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <Download className="w-4 h-4" />
                 Download

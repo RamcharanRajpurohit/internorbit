@@ -48,3 +48,36 @@ export const verifyToken = async (req: AuthRequest, res: Response, next: NextFun
     res.status(401).json({ error: 'Token verification failed' });
   }
 };
+
+/**
+ * Optional authentication middleware
+ * Allows requests with or without authentication token
+ * If token is provided and valid, sets req.user
+ * If no token or invalid token, continues without req.user
+ */
+export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  
+  // No token provided - continue as guest
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    // Try to verify token with Supabase
+    const { data, error } = await supabase.auth.getUser(token);
+    
+    if (!error && data.user) {
+      // Valid token - set user
+      req.user = data.user;
+    }
+    // Invalid token - continue without user (no error thrown)
+    next();
+  } catch (error: any) {
+    console.error('Optional auth error:', error);
+    // Error verifying token - continue without user
+    next();
+  }
+};

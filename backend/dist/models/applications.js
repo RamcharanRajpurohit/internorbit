@@ -35,7 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Application = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-// Mongoose schema definition
 const ApplicationSchema = new mongoose_1.Schema({
     internship_id: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -49,21 +48,21 @@ const ApplicationSchema = new mongoose_1.Schema({
         required: [true, 'Student ID is required'],
         index: true,
     },
+    resume_id: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Resume',
+        required: [true, 'Resume ID is required'],
+    },
     cover_letter: {
         type: String,
         required: [true, 'Cover letter is required'],
         trim: true,
         maxlength: [5000, 'Cover letter cannot exceed 5000 characters'],
     },
-    resume_url: {
-        type: String,
-        required: [true, 'Resume URL is required'],
-        trim: true,
-    },
     status: {
         type: String,
         enum: {
-            values: ['pending', 'accepted', 'rejected', 'withdrawn'],
+            values: ['pending', 'reviewed', 'shortlisted', 'accepted', 'rejected', 'withdrawn'],
             message: '{VALUE} is not a valid status',
         },
         default: 'pending',
@@ -78,20 +77,20 @@ const ApplicationSchema = new mongoose_1.Schema({
         type: Date,
         default: Date.now,
     },
+    reviewed_at: Date,
+    feedback: String,
 }, {
     timestamps: {
         createdAt: 'applied_at',
         updatedAt: 'updated_at',
     },
 });
-// Compound index for efficient queries
 ApplicationSchema.index({ internship_id: 1, student_id: 1 }, { unique: true });
 ApplicationSchema.index({ student_id: 1, status: 1 });
 ApplicationSchema.index({ internship_id: 1, status: 1 });
-// Pre-save middleware to update the updated_at timestamp
+ApplicationSchema.index({ resume_id: 1 }); // NEW: For finding applications by resume
 ApplicationSchema.pre('save', function (next) {
     this.updated_at = new Date();
     next();
 });
-// Export the model
 exports.Application = mongoose_1.default.model('Application', ApplicationSchema);

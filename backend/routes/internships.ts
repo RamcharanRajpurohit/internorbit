@@ -1,6 +1,6 @@
 // backend/routes/internships.ts
 import { Router } from "express";
-import { verifyToken } from "../middleware/auth";
+import { verifyToken, optionalAuth } from "../middleware/auth";
 import { getAllByCompanyId, getAllInternships } from "../controller/internships/get";
 import { CreateInternships } from "../controller/internships/create";
 import { UpdateInternshipsDetails } from "../controller/internships/update";
@@ -11,11 +11,13 @@ import { DeleteInternship } from "../controller/internships/delete";
 export const router = Router();
 
 // Get all active internships with pagination and filters
-router.get("/", getAllInternships);
+// Uses optionalAuth to allow both authenticated and guest users
+// If authenticated, has_applied will be checked; if guest, has_applied will be false
+router.get("/", optionalAuth, getAllInternships);
 router.get("/company", verifyToken,getAllByCompanyId );
 
-// Get single internship // to do  do not allow ended interships
-router.get("/:id", getOneInternship);
+// Get single internship - Uses optionalAuth for same reason
+router.get("/:id", optionalAuth, getOneInternship);
 
 // Create internship (Company only)
 router.post("/", verifyToken, CreateInternships);

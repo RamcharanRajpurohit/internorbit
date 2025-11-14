@@ -88,10 +88,32 @@ const createApplication = async (req: AuthRequest, res: Response) => {
       { upsert: true }
     );
 
+    // Populate application to EXACTLY MATCH the format from get endpoint
+    const populatedApplication = await Application.findById(application._id)
+      .populate({
+        path: 'internship_id',
+        select: 'title description company_id', // ONLY these fields like get endpoint
+        populate: {
+          path: 'company_id',
+          model: 'CompanyProfile',
+          select: 'company_name logo_url website industry'
+        }
+      })
+      .populate('student_id', 'full_name email'); // NOT populating resume_id - keep as string like get endpoint
+
+    // Also return standalone internship data for updating internship list
+    const internshipData = await Internship.findById(internship_id)
+      .populate('company_id', 'company_name logo_url location industry')
+      .lean();
+
     res.status(201).json({ 
-      application: await Application.findById(application._id)
-        .populate('resume_id', 'file_name file_path visibility scan_status')
-        .populate('student_id', 'full_name email')
+      application: populatedApplication, // Application in EXACT same format as get endpoint
+      internship: {
+        ...internshipData,
+        has_applied: true, // Just applied
+        applications_count: internship.applications_count,
+      },
+      message: 'Application submitted successfully'
     });
   } catch (error: any) {
     console.error('Application creation error:', error);

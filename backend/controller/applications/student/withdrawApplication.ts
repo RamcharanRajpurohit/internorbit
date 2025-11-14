@@ -30,17 +30,30 @@ const withDrawApplication =async (req: AuthRequest, res: Response) => {
     // Delete application
     await Application.findByIdAndDelete(id);
 
-    // Update internship applications count
-    const internship = await Internship.findById(application.internship_id);
+    // Update internship applications count and get FULL data
+    const internship = await Internship.findById(application.internship_id)
+      .populate('company_id', 'company_name logo_url location industry')
+      .lean();
+      
     if (internship) {
-      internship.applications_count = Math.max((internship.applications_count || 1) - 1, 0);
-      await internship.save();
+      // Update the count in database
+      await Internship.findByIdAndUpdate(
+        application.internship_id,
+        { $inc: { applications_count: -1 } }
+      );
     }
 
-    res.json({ message: 'Application withdrawn' });
+    res.json({ 
+      message: 'Application withdrawn successfully',
+      internship: internship ? {
+        ...internship,
+        has_applied: false, // Just withdrawn
+        applications_count: Math.max((internship.applications_count || 1) - 1, 0),
+      } : null
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
-}
+};
 
 export { withDrawApplication };

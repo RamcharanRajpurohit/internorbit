@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useAuth } from "@/hooks/useAuth";
 import { useInternships } from "@/hooks/useInternships";
 import { useSavedJobs } from "@/hooks/useSaved";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +26,11 @@ const StudentDashboard = () => {
 
   // Use Redux hooks for state management - let hooks handle auto-fetch
   const { isAuthenticated, isStudent } = useAuth();
-  const { internships, isLoading } = useInternships(true, { page: 1, limit: 50 }); // Enable auto-fetch
+  const { internships, isLoading, refetch } = useInternships(true, { page: 1, limit: 50 }); // Enable auto-fetch
   const { saveJob, unsaveJob } = useSavedJobs(false); // Explicitly disable auto-fetch for dashboard
+  
+  // Detect browser refresh and refetch all dashboard data
+  useRouteRefresh(isStudent ? 'student' : null);
 
   // Get saved jobs to check saved status
   const savedJobs = useSelector((state: any) => state.interaction.savedJobs);
@@ -269,17 +273,28 @@ const StudentDashboard = () => {
                           >
                             View Details
                           </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-gradient-primary text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApply(internshipId);
-                            }}
-                          >
-                            <Send className="w-3 h-3 mr-1" />
-                            Apply
-                          </Button>
+                          {internship.has_applied ? (
+                            <Button
+                              size="sm"
+                              className="flex-1 text-xs"
+                              variant="secondary"
+                              disabled
+                            >
+                              <span className="text-green-600 font-semibold">✓ Applied</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-gradient-primary text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApply(internshipId);
+                              }}
+                            >
+                              <Send className="w-3 h-3 mr-1" />
+                              Apply
+                            </Button>
+                          )}
                         </div>
 
                         {/* Deadline Indicator */}

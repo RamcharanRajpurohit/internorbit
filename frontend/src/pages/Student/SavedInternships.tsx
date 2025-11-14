@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useSavedJobs } from "@/hooks/useSaved";
 import { getCompanyData } from "@/lib/dataNormalization";
 
@@ -20,6 +21,10 @@ const SavedInternships = () => {
 
   // Use our new state management hooks
   const { isAuthenticated, isStudent } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isStudent ? 'student' : null);
+  
   const defaultParams = useMemo(() => ({ page: 1, limit: 10 }), []);
   const {
     savedJobs: saved,
@@ -267,17 +272,28 @@ const SavedInternships = () => {
                           >
                             View Details
                           </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-gradient-primary text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApply(internshipId);
-                            }}
-                          >
-                            <Send className="w-3 h-3 mr-1" />
-                            Apply
-                          </Button>
+                          {internship.has_applied ? (
+                            <Button
+                              size="sm"
+                              className="flex-1 text-xs"
+                              variant="secondary"
+                              disabled
+                            >
+                              <span className="text-green-600 font-semibold">✓ Applied</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-gradient-primary text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApply(internshipId);
+                              }}
+                            >
+                              <Send className="w-3 h-3 mr-1" />
+                              Apply
+                            </Button>
+                          )}
                         </div>
 
                         {/* Application Deadline Footer */}

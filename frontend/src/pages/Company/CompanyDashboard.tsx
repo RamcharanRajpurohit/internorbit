@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
 import { Plus, Briefcase, Users, TrendingUp, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useCompanyInternships } from "@/hooks/useInternships";
 import { Loader } from "@/components/ui/Loader";
 
@@ -14,6 +15,10 @@ const CompanyDashboard = () => {
 
   // Use Redux hooks for state management
   const { isAuthenticated, isCompany } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isCompany ? 'company' : null);
+  
   const { companyInternships, isLoading, refetch } = useCompanyInternships();
 
   useEffect(() => {

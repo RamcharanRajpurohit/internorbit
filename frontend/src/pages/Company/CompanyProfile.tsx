@@ -18,6 +18,7 @@ import {
   Link as LinkIcon, Briefcase
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useCompanyProfile } from "@/hooks/useProfile";
 
 
@@ -28,6 +29,9 @@ const CompanyProfile = () => {
 
   // Use our new state management hooks
   const { isAuthenticated, isCompany } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isCompany ? 'company' : null);
   const {
     companyProfile,
     isLoading,

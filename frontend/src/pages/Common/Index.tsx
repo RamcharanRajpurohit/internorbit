@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import StudentDashboard from "../Student/StudentDashboard";
 import CompanyDashboard from "../Company/CompanyDashboard";
 import Landing from "./Landing";
@@ -10,6 +11,10 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading: authLoading, isAuthenticated, isStudent, isCompany } = useAuth();
+
+  // Detect browser refresh and refetch route data
+  const userRole = isStudent ? 'student' : isCompany ? 'company' : null;
+  useRouteRefresh(userRole);
 
   // Debug logging (only log when auth state changes)
   useEffect(() => {

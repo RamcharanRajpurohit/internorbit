@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { internshipAPI } from "@/lib/api";
 import { useSavedJobs } from "@/hooks/useSaved";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +29,12 @@ const InternshipDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { isAuthenticated, isStudent } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isStudent ? 'student' : null);
+  
   const { saveJob, unsaveJob, savedJobs } = useSavedJobs(false);
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [internship, setInternship] = useState<any>(null);
 
@@ -115,56 +122,75 @@ const InternshipDetail = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(-1)}
-            className="mb-6 hover:bg-muted/50 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="mb-6 hover:bg-muted/50 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          )}
 
           <Card className="shadow-card overflow-hidden">
             <CardHeader className="border-b">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                   {companyProfile?.company_profiles?.[0]?.logo_url || companyProfile?.logo_url ? (
                     <img
                       src={companyProfile?.company_profiles?.[0]?.logo_url || companyProfile?.logo_url}
                       alt={companyProfile?.company_profiles?.[0]?.company_name || companyProfile?.company_name || "Company"}
-                      className="w-16 h-16 rounded-xl object-cover ring-2 ring-border shadow-sm"
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl object-cover ring-2 ring-border shadow-sm flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-xl bg-gradient-secondary flex items-center justify-center ring-2 ring-border shadow-sm">
-                      <Building className="w-8 h-8 text-secondary-foreground" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-secondary flex items-center justify-center ring-2 ring-border shadow-sm flex-shrink-0">
+                      <Building className="w-6 h-6 sm:w-8 sm:h-8 text-secondary-foreground" />
                     </div>
                   )}
-                  <div>
-                    <CardTitle className="text-3xl mb-2 bg-gradient-primary bg-clip-text text-transparent">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-xl sm:text-2xl lg:text-3xl mb-1 sm:mb-2 bg-gradient-primary bg-clip-text text-transparent break-words">
                       {internship.title}
                     </CardTitle>
-                    <p className="text-lg text-muted-foreground flex items-center gap-2">
-                      <Building className="w-4 h-4" />
-                      {companyProfile?.company_profiles?.[0]?.company_name ||
-                       companyProfile?.company_name ||
-                       "Company"}
+                    <p className="text-sm sm:text-base lg:text-lg text-muted-foreground flex items-center gap-2">
+                      <Building className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">
+                        {companyProfile?.company_profiles?.[0]?.company_name ||
+                         companyProfile?.company_name ||
+                         "Company"}
+                      </span>
                     </p>
                   </div>
                 </div>
                 {isStudent && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full sm:w-auto">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={handleSave}
-                      className={isSaved ? "text-primary" : ""}
+                      className={`flex-shrink-0 ${isSaved ? "text-primary" : ""}`}
                     >
-                      <Heart className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
                     </Button>
-                    <Button onClick={handleApply} className="bg-gradient-primary">
-                      <Send className="w-4 h-4 mr-2" />
-                      Apply Now
-                    </Button>
+                    {internship.has_applied ? (
+                      <Button 
+                        className="flex-1 sm:flex-initial"
+                        size="default"
+                        variant="secondary"
+                        disabled
+                      >
+                        <span className="text-sm text-green-600 font-semibold">✓ Applied</span>
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleApply} 
+                        className="bg-gradient-primary flex-1 sm:flex-initial"
+                        size="default"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        <span className="text-sm">Apply Now</span>
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -172,56 +198,56 @@ const InternshipDetail = () => {
 
             <CardContent className="pt-6">
               {/* Quick Info */}
-              <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
                 {internship.location && (
-                  <Badge variant="secondary" className="text-base py-2 px-4">
-                    <MapPin className="w-4 h-4 mr-2" />
+                  <Badge variant="secondary" className="text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     {internship.location}
                   </Badge>
                 )}
                 {internship.is_remote && (
-                  <Badge variant="secondary" className="text-base py-2 px-4">
+                  <Badge variant="secondary" className="text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4">
                     Remote
                   </Badge>
                 )}
                 {internship.stipend_min && (
-                  <Badge variant="secondary" className="text-base py-2 px-4">
-                    <DollarSign className="w-4 h-4 mr-2" />
+                  <Badge variant="secondary" className="text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4">
+                    <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     ${internship.stipend_min}-${internship.stipend_max}/mo
                   </Badge>
                 )}
                 {internship.duration_months && (
-                  <Badge variant="secondary" className="text-base py-2 px-4">
-                    <Calendar className="w-4 h-4 mr-2" />
+                  <Badge variant="secondary" className="text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     {internship.duration_months} months
                   </Badge>
                 )}
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-4 mb-8 p-6 bg-gradient-card rounded-xl border border-border">
-                <div className="text-center p-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Users className="w-5 h-5 text-primary" />
-                    <span className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8 p-3 sm:p-6 bg-gradient-card rounded-xl border border-border">
+                <div className="text-center p-2 sm:p-4">
+                  <div className="flex flex-col items-center justify-center gap-1 mb-1 sm:mb-2">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                    <span className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent whitespace-nowrap">
                       {internship.applications_count || 0}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Applications</p>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground leading-tight">Applications</p>
                 </div>
-                <div className="text-center p-4 border-l border-r border-border">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Briefcase className="w-5 h-5 text-primary" />
-                    <span className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                <div className="text-center p-2 sm:p-4 border-l border-r border-border">
+                  <div className="flex flex-col items-center justify-center gap-1 mb-1 sm:mb-2">
+                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                    <span className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent whitespace-nowrap">
                       {internship.positions_available || 1}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Positions</p>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground leading-tight">Positions</p>
                 </div>
-                <div className="text-center p-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-primary" />
-                    <span className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                <div className="text-center p-2 sm:p-4">
+                  <div className="flex flex-col items-center justify-center gap-1 mb-1 sm:mb-2">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                    <span className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent whitespace-nowrap">
                       {internship.application_deadline
                         ? Math.ceil(
                             (new Date(internship.application_deadline).getTime() -
@@ -231,14 +257,14 @@ const InternshipDetail = () => {
                         : "N/A"}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Days Left</p>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground leading-tight">Days Left</p>
                 </div>
               </div>
 
               {/* Description */}
               <div className="mb-6">
-                <h3 className="text-xl font-bold mb-3">About the Role</h3>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                <h3 className="text-lg sm:text-xl font-bold mb-3">About the Role</h3>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed whitespace-pre-line">
                   {internship.description}
                 </p>
               </div>
@@ -246,8 +272,8 @@ const InternshipDetail = () => {
               {/* Responsibilities */}
               {internship.responsibilities && (
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold mb-3">Responsibilities</h3>
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                  <h3 className="text-lg sm:text-xl font-bold mb-3">Responsibilities</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed whitespace-pre-line">
                     {internship.responsibilities}
                   </p>
                 </div>
@@ -256,8 +282,8 @@ const InternshipDetail = () => {
               {/* Requirements */}
               {internship.requirements && (
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold mb-3">Requirements</h3>
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                  <h3 className="text-lg sm:text-xl font-bold mb-3">Requirements</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed whitespace-pre-line">
                     {internship.requirements}
                   </p>
                 </div>
@@ -266,10 +292,10 @@ const InternshipDetail = () => {
               {/* Skills */}
               {internship.skills_required && internship.skills_required.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold mb-3">Required Skills</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mb-3">Required Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {internship.skills_required.map((skill: string, idx: number) => (
-                      <Badge key={idx} variant="outline" className="text-base py-2 px-4">
+                      <Badge key={idx} variant="outline" className="text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4">
                         {skill}
                       </Badge>
                     ))}
@@ -280,8 +306,8 @@ const InternshipDetail = () => {
               {/* Company Info */}
               {companyProfile && (
                 <div className="mb-6 p-4 bg-muted rounded-lg">
-                  <h3 className="text-xl font-bold mb-3">About the Company</h3>
-                  <div className="space-y-2">
+                  <h3 className="text-lg sm:text-xl font-bold mb-3">About the Company</h3>
+                  <div className="space-y-2 text-sm sm:text-base">
                     <p className="text-muted-foreground">
                       {companyProfile?.company_profiles?.[0]?.description ||
                        companyProfile?.description ||
@@ -304,7 +330,7 @@ const InternshipDetail = () => {
                         href={companyProfile?.company_profiles?.[0]?.website || companyProfile?.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm text-primary hover:underline inline-block"
                       >
                         Visit Website →
                       </a>
@@ -315,19 +341,30 @@ const InternshipDetail = () => {
 
               {/* Apply Section */}
               {isStudent && (
-                <div className="mt-8 p-6 bg-gradient-card rounded-lg text-center">
-                  <h3 className="text-2xl font-bold mb-2">Ready to Apply?</h3>
-                  <p className="text-muted-foreground mb-4">
+                <div className="mt-8 p-4 sm:p-6 bg-gradient-card rounded-lg text-center">
+                  <h3 className="text-xl sm:text-2xl font-bold mb-2">Ready to Apply?</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4">
                     Submit your application and take the next step in your career
                   </p>
-                  <Button
-                    size="lg"
-                    onClick={handleApply}
-                    className="bg-gradient-primary"
-                  >
-                    <Send className="w-5 h-5 mr-2" />
-                    Apply Now
-                  </Button>
+                  {internship.has_applied ? (
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto"
+                      variant="secondary"
+                      disabled
+                    >
+                      <span className="text-sm sm:text-base text-green-600 font-semibold">✓ Already Applied</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      onClick={handleApply}
+                      className="bg-gradient-primary w-full sm:w-auto"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      <span className="text-sm sm:text-base">Apply Now</span>
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>

@@ -1,6 +1,8 @@
 import { Response } from "express";
 import { Internship } from "../../models/internships";
 import { CompanyProfile } from "../../models/company-profile";
+import { StudentProfile } from "../../models/studnet";
+import { Application } from "../../models/applications";
 import { AuthRequest } from "../../middleware/auth";
 
 const getAllInternships = async (req: AuthRequest, res: Response) => {
@@ -43,15 +45,38 @@ const getAllInternships = async (req: AuthRequest, res: Response) => {
       .limit(Number(limit));
     console.log("hers is the intenships for ypu:", internships);
 
-    // Populate company profiles
+    // Get student profile for has_applied check
+    let studentProfile = null;
+    if (req.user && req.user.id) {
+      console.log("🔍 Looking for student profile with user_id:", req.user.id);
+      studentProfile = await StudentProfile.findOne({ user_id: req.user.id });
+      console.log("📋 Student profile found:", studentProfile ? studentProfile._id : "NOT FOUND");
+    } else {
+      console.log("⚠️ No user in request");
+    }
+
+    // Populate company profiles and check application status
     const populatedInternships = await Promise.all(
       internships.map(async (internship) => {
         const companyProfile = await CompanyProfile.findOne({
           _id: internship.company_id,
         });
+        
+        // Check if student has applied to this internship
+        let hasApplied = false;
+        if (studentProfile) {
+          const application = await Application.findOne({
+            internship_id: internship._id,
+            student_id: studentProfile._id,
+          });
+          hasApplied = !!application;
+          console.log(`✅ Internship ${internship._id}: has_applied = ${hasApplied}, application found:`, application ? application._id : "NO");
+        }
+
         console.log("company profile:", companyProfile);
         return {
           ...internship.toObject(),
+          has_applied: hasApplied,
           company: {
             ...(internship.company_id as any).toObject(),
             company_profiles: companyProfile ? [companyProfile] : [],

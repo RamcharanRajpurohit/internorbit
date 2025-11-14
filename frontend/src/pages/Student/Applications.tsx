@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStudentApplications } from "@/hooks/useApplications";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,10 @@ const Applications = () => {
 
   // Use our new state management hooks
   const { isAuthenticated, isStudent } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isStudent ? 'student' : null);
+  
   const {
     studentApplications: applications,
     isLoading,
@@ -98,14 +103,16 @@ const Applications = () => {
           </div>
 
           <Tabs value={status} onValueChange={(value) => { setStatus(value as "all" | ApplicationStatus); setPage(1); }} className="mb-8">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="all">All</TabsTrigger>
-              {APPLICATION_STATUS_OPTIONS.map((statusOption) => (
-                <TabsTrigger key={statusOption.value} value={statusOption.value}>
-                  {statusOption.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="overflow-x-auto">
+              <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-6">
+                <TabsTrigger value="all" className="flex-shrink-0">All</TabsTrigger>
+                {APPLICATION_STATUS_OPTIONS.map((statusOption) => (
+                  <TabsTrigger key={statusOption.value} value={statusOption.value} className="flex-shrink-0">
+                    {statusOption.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           </Tabs>
 
           {applicationsData.length === 0 ? (
@@ -193,7 +200,7 @@ const Applications = () => {
                       {/* Application Details */}
                       <div className="p-4">
                         {/* Quick Info Badges */}
-                        <div className="flex flex-wrap gap-1.5 mb-4">
+                        {/* <div className="flex flex-wrap gap-1.5 mb-4">
                           {internship.location && (
                             <Badge variant="secondary" className="text-xs flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
@@ -215,7 +222,7 @@ const Applications = () => {
                               {internship.duration_months}m
                             </Badge>
                           )}
-                        </div>
+                        </div> */}
 
                         {/* Cover Letter Preview */}
                         {app.cover_letter && (
@@ -231,7 +238,7 @@ const Applications = () => {
                         )}
 
                         {/* Skills Preview */}
-                        {internship.skills_required && internship.skills_required.length > 0 && (
+                        {/* {internship.skills_required && internship.skills_required.length > 0 && (
                           <div className="mb-4">
                             <div className="flex flex-wrap gap-1">
                               {internship.skills_required.slice(0, 3).map((skill: string, skillIndex: number) => (
@@ -246,7 +253,7 @@ const Applications = () => {
                               )}
                             </div>
                           </div>
-                        )}
+                        )} */}
 
                         {/* Action Buttons */}
                         <div className="flex gap-2 mt-auto">

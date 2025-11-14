@@ -1,6 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { applicationAPI } from '@/lib/api';
 import { extractApplication } from '@/lib/dataNormalization';
+import { 
+  updateInternshipInList, 
+  syncApplicationToInternshipSlice as syncToInternshipSlice 
+} from './internshipSlice';
+import { syncApplicationToSavedJobs } from './savedSlice';
 import type {
   Application,
   ApplicationStatus,
@@ -80,29 +85,40 @@ export const createApplication = createAsyncThunk(
     try {
       const response: CreateApplicationResponse = await applicationAPI.create(applicationData);
 
-      // Dispatch sync to internshipSlice
-      dispatch(syncApplicationToInternshipSlice({
-        internshipId: applicationData.internship_id,
-        hasApplied: true
-      }));
+      // Use FULL internship data from response
+      const internshipFromResponse = response.internship || internshipData;
+
+      if (internshipFromResponse) {
+        // Update internship slice with FULL data including has_applied: true
+        dispatch(syncToInternshipSlice({
+          internshipId: internshipFromResponse._id || applicationData.internship_id,
+          hasApplied: true
+        }));
+
+        // Update saved jobs list if user has saved this internship
+        dispatch(syncApplicationToSavedJobs({
+          internshipId: internshipFromResponse._id || applicationData.internship_id,
+          hasApplied: true
+        }));
+
+        // If we have full internship data from response, update the internship in the list
+        if (response.internship) {
+          dispatch(updateInternshipInList({
+            ...internshipFromResponse,
+            has_applied: true
+          }));
+        }
+      }
 
       const normalizedApplication = extractApplication(response.application);
       if (!normalizedApplication) {
         throw new Error('Invalid application response');
       }
 
-      // If internship data is provided, merge it with the application response
-      if (internshipData) {
-        return {
-          ...normalizedApplication,
-          internship: internshipData, // Full internship data from apply page
-          applications_count: response.applications_count || internshipData.applications_count || 0
-        };
-      }
-
       return {
         ...normalizedApplication,
-        applications_count: response.applications_count || response.application?.internship?.applications_count
+        internship: internshipFromResponse,
+        applications_count: response.internship?.applications_count || response.applications_count
       };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create application');
@@ -137,12 +153,39 @@ export const withdrawApplication = createAsyncThunk(
         ? application?.internship_id._id
         : application?.internship_id;
 
-      await applicationAPI.withdraw(id);
+      const response = await applicationAPI.withdraw(id);
 
-      // Dispatch sync to internshipSlice
-      if (internshipId) {
-        dispatch(syncApplicationToInternshipSlice({
-          internshipId,
+      // Use FULL internship data from response
+      const internshipFromResponse = response?.internship;
+
+      if (internshipFromResponse) {
+        // Update internship slice
+        dispatch(syncToInternshipSlice({
+          internshipId: internshipFromResponse._id || internshipId,
+          hasApplied: false
+        }));
+
+        // Update saved jobs list if user has saved this internship
+        dispatch(syncApplicationToSavedJobs({
+          internshipId: internshipFromResponse._id || internshipId,
+          hasApplied: false
+        }));
+
+        // Update the internship in the list with full data
+        dispatch(updateInternshipInList({
+          ...internshipFromResponse,
+          has_applied: false
+        }));
+      } else if (internshipId) {
+        // Fallback if no internship data in response
+        dispatch(syncToInternshipSlice({
+          internshipId: internshipId,
+          hasApplied: false
+        }));
+
+        // Also update saved jobs
+        dispatch(syncApplicationToSavedJobs({
+          internshipId: internshipId,
           hasApplied: false
         }));
       }
@@ -319,7 +362,10 @@ const applicationSlice = createSlice({
       })
       .addCase(createApplication.fulfilled, (state, action) => {
         state.isSubmitting = false;
-        // Now handled via addApplicationToList action from component
+        // Add the new application to the beginning of studentApplications list
+        state.studentApplications.unshift(action.payload);
+        // Update pagination total
+        state.pagination.student.total += 1;
         state.error = null;
       })
 

@@ -152,9 +152,21 @@ const internshipSlice = createSlice({
       state.filters = {};
     },
     updateInternshipInList: (state, action: PayloadAction<Internship>) => {
+      // Update in internships list
       const index = state.internships.findIndex(i => i._id === action.payload._id);
       if (index !== -1) {
         state.internships[index] = action.payload;
+      }
+
+      // Update in current internship
+      if (state.currentInternship && state.currentInternship._id === action.payload._id) {
+        state.currentInternship = action.payload;
+      }
+
+      // Update in company internships if exists
+      const companyIndex = state.companyInternships.findIndex(i => i._id === action.payload._id);
+      if (companyIndex !== -1) {
+        state.companyInternships[companyIndex] = action.payload;
       }
     },
     // FIX: Direct sync actions that other slices dispatch
@@ -191,6 +203,12 @@ const internshipSlice = createSlice({
       if (state.currentInternship && state.currentInternship._id === internshipId) {
         state.currentInternship.has_applied = hasApplied;
       }
+
+      // Update in company internships if exists
+      const companyIndex = state.companyInternships.findIndex(i => i._id === internshipId);
+      if (companyIndex !== -1) {
+        state.companyInternships[companyIndex].has_applied = hasApplied;
+      }
     },
     toggleSavedStatus: (state, action: PayloadAction<{ _id: string; isSaved: boolean }>) => {
       const { _id, isSaved } = action.payload;
@@ -224,6 +242,12 @@ const internshipSlice = createSlice({
       // Update in current internship
       if (state.currentInternship?._id === _id) {
         state.currentInternship.has_applied = hasApplied;
+      }
+
+      // Update in company internships if exists
+      const companyIndex = state.companyInternships.findIndex(i => i._id === _id);
+      if (companyIndex !== -1) {
+        state.companyInternships[companyIndex].has_applied = hasApplied;
       }
     },
     updateApplicationsCount: (state, action: PayloadAction<{ _id: string; count: number }>) => {

@@ -113,12 +113,12 @@ const InternshipSchema: Schema = new Schema<IInternship>(
     application_deadline: {
       type: Date,
       required: [true, 'Application deadline is required'],
-      validate: {
-        validator: function (v: Date) {
-          return v > new Date();
-        },
-        message: 'Application deadline must be in the future',
-      },
+      // validate: {
+      //   validator: function (v: Date) {
+      //     return v > new Date();
+      //   },
+      //   message: 'Application deadline must be in the future',
+      // },
       index: true,
     },
     positions_available: {

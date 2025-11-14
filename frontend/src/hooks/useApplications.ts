@@ -9,11 +9,11 @@ import {
   withdrawApplication,
   fetchApplicationById,
   clearApplicationError,
+  removeApplicationFromList,
 } from '@/store/slices/applicationSlice';
-import { addApplicationToList, removeApplicationFromList } from '@/store/slices/applicationSlice';
 import { toggleAppliedStatus, updateApplicationsCount } from '@/store/slices/internshipSlice';
 import { useAuth } from './useAuth';
-import { add } from 'date-fns';
+import { ApplicationStatus } from '@/types';
 
 export const useStudentApplications = (autoFetch = true) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -36,7 +36,7 @@ export const useStudentApplications = (autoFetch = true) => {
   }, [dispatch, autoFetch, isAuthenticated, isStudent, studentApplications.length]);
 
   const handleFetchApplications = useCallback(
-    async (params?: { page?: number; limit?: number; status?: string }) => {
+    async (params?: { page?: number; limit?: number; status?: ApplicationStatus }) => {
       try {
         return await dispatch(fetchStudentApplications(params)).unwrap();
       } catch (error: any) {
@@ -54,9 +54,8 @@ export const useStudentApplications = (autoFetch = true) => {
     }, internshipData?: any) => {
       try {
         const result = await dispatch(createApplication({ applicationData, internshipData })).unwrap();
-        dispatch(addApplicationToList(result));
+        // Application is automatically added to list in createApplication.fulfilled reducer
         return result;
-        // The thunk automatically dispatches toggleAppliedStatus to internshipSlice
       } catch (error: any) {
         throw error;
       }
@@ -116,7 +115,7 @@ export const useCompanyApplications = (autoFetch = true) => {
   }, [dispatch, autoFetch, isAuthenticated, isCompany, companyApplications.length]);
 
   const handleFetchApplications = useCallback(
-    async (params?: { page?: number; limit?: number; status?: string }) => {
+    async (params?: { page?: number; limit?: number; status?: ApplicationStatus }) => {
       try {
         return await dispatch(fetchCompanyApplications(params)).unwrap();
       } catch (error: any) {
@@ -127,7 +126,7 @@ export const useCompanyApplications = (autoFetch = true) => {
   );
 
   const handleUpdateStatus = useCallback(
-    async (applicationId: string, status: string) => {
+    async (applicationId: string, status: ApplicationStatus) => {
       try {
         const result = await dispatch(updateApplicationStatus({ id: applicationId, status })).unwrap();
         // The result should contain the updated count from the API response

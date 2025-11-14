@@ -27,22 +27,27 @@ const Landing = () => {
             <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
               <Briefcase className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               InternOrbit
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
+              size="sm"
+              className="sm:size-default"
               onClick={() => navigate("/auth")}
             >
-              Sign In
+              <span className="hidden sm:inline">Sign In</span>
+              <span className="sm:hidden">Login</span>
             </Button>
             <Button
-              className="bg-gradient-primary hover:shadow-glow transition-all"
+              size="sm"
+              className="bg-gradient-primary hover:shadow-glow transition-all sm:size-default"
               onClick={() => navigate("/auth")}
             >
-              Get Started
+              <span className="hidden sm:inline">Get Started</span>
+              <span className="sm:hidden">Start</span>
             </Button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, Clock, XCircle, Briefcase, User, Calendar, MapPin, Mail, Eye } from "lucide-react";
 import { Loader } from "@/components/ui/Loader";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useCompanyApplications } from "@/hooks/useApplications";
 import { Button } from "@/components/ui/button";
 const CompanyApplicants = () => {
@@ -15,6 +16,10 @@ const CompanyApplicants = () => {
 
   // Use our new state management hooks
   const { isAuthenticated, isCompany } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isCompany ? 'company' : null);
+  
   const {
     companyApplications: applications,
     isLoading,
@@ -126,9 +131,16 @@ const CompanyApplicants = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredApplications.map((app) => {
                 const student = app.student;
-                const studentName = student?.full_name || "Unknown Student";
-                const studentEmail = student?.email || "N/A";
-                const studentUniversity = student?.university || "N/A";
+                
+                // Type helper to check if student is an object
+                const isStudentObject = (student: any): student is { _id: string; user_id: string; full_name: string; email: string; avatar_url?: string; university?: string; degree?: string; graduation_year?: number; location?: string; phone?: string; linkedin_url?: string; github_url?: string; bio?: string; skills?: string[]; } => {
+                  return typeof student === 'object' && student !== null && 'full_name' in student;
+                };
+
+                const studentObj = isStudentObject(student) ? student : null;
+                const studentName = studentObj?.full_name || "Unknown Student";
+                const studentEmail = studentObj?.email || "N/A";
+                const studentUniversity = studentObj?.university || "N/A";
 
                 return (
                   <Card
@@ -141,9 +153,9 @@ const CompanyApplicants = () => {
                       <div className="p-4 border-b border-border">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            {student?.avatar_url ? (
+                            {studentObj?.avatar_url ? (
                               <img
-                                src={student.avatar_url}
+                                src={studentObj.avatar_url}
                                 alt={studentName}
                                 className="w-10 h-10 rounded-xl object-cover ring-2 ring-border shadow-sm"
                               />
@@ -188,15 +200,15 @@ const CompanyApplicants = () => {
 
                         {/* Education Info */}
                         <div className="space-y-2 mb-4">
-                          {student?.degree && (
+                          {studentObj?.degree && (
                             <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span className="font-medium">Degree:</span> {student.degree}
+                              <span className="font-medium">Degree:</span> {studentObj.degree}
                             </p>
                           )}
-                          {student?.university && (
+                          {studentObj?.university && (
                             <p className="text-sm text-muted-foreground flex items-center gap-2">
                               <MapPin className="w-3 h-3" />
-                              {student.university}
+                              {studentObj.university}
                             </p>
                           )}
                         </div>

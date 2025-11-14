@@ -346,11 +346,21 @@ export interface ApplicationDetailResponse {
 export interface CreateApplicationResponse {
   application: Application;
   applications_count?: number;
+  internship?: Internship; // Full internship object with all fields
+  message?: string;
+}
+
+// Withdraw application response
+export interface WithdrawApplicationResponse {
+  message: string;
+  internship?: Internship; // Full internship object
 }
 
 // Save job response
 export interface SaveJobResponse {
   saved: SavedJob;
+  internship?: Internship; // Full internship object
+  message?: string;
 }
 
 // Stats response
