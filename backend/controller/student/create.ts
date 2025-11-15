@@ -28,7 +28,31 @@ const CreateStudentProfile = async (req: AuthRequest, res: Response) => {
     const existing = await StudentProfile.findOne({ user_id: req.user?.id });
 
     if (existing) {
-      return res.status(400).json({ error: 'Student profile already exists' });
+      // Profile exists - update it instead of throwing error (for onboarding completion)
+      existing.bio = bio || existing.bio;
+      existing.university = university || existing.university;
+      existing.degree = degree || existing.degree;
+      existing.graduation_year = graduation_year || existing.graduation_year;
+      existing.location = location || existing.location;
+      existing.skills = skills || existing.skills;
+      existing.resume_url = resume_url || existing.resume_url;
+      existing.phone = phone || existing.phone;
+      existing.linkedin_url = linkedin_url || existing.linkedin_url;
+      existing.github_url = github_url || existing.github_url;
+      existing.updated_at = new Date();
+      
+      // Check if profile is complete and set the flag
+      existing.profile_completed = existing.isProfileComplete();
+      
+      await existing.save();
+      
+      // Mark onboarding as completed in main profile
+      await Profile.findOneAndUpdate(
+        { user_id: req.user?.id },
+        { onboarding_completed: true }
+      );
+      
+      return res.status(200).json({ profile: existing });
     }
 
     const profile = new StudentProfile({

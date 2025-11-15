@@ -11,6 +11,7 @@ import Navigation from "@/components/common/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getSession } from "@/integrations/supabase/client";
+import { authAPI } from "@/lib/api";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -169,23 +170,8 @@ const Settings = () => {
 
   const handleDeleteAccount = async () => {
     try {
-      const session = await getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      // Call backend to delete user data
-      const response = await fetch(`${API_URL}/auth/delete`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete account");
-      }
+      // Call backend to delete all user data (MongoDB + Supabase)
+      await authAPI.deleteAccount();
 
       // Sign out from Redux
       await signOut();

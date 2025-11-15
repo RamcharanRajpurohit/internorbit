@@ -26,7 +26,7 @@ const GetStudentProfile = async (req: AuthRequest, res: Response) => {
         $project: {
           user_id: 1,
           bio: 1,
-          // university: 1,
+          university: 1,
           degree: 1,
           graduation_year: 1,
           location: 1,

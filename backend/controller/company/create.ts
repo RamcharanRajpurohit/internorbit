@@ -24,7 +24,28 @@ const createCompanyProfile = async (req: AuthRequest, res: Response) => {
     const existing = await CompanyProfile.findOne({ user_id: req.user.id });
 
     if (existing) {
-      return res.status(400).json({ error: 'Company profile already exists' });
+      // Profile exists - update it instead of throwing error (for onboarding completion)
+      existing.company_name = company_name || existing.company_name;
+      existing.description = description || existing.description;
+      existing.website = website || existing.website;
+      existing.industry = industry || existing.industry;
+      existing.company_size = company_size || existing.company_size;
+      existing.location = location || existing.location;
+      existing.logo_url = logo_url || existing.logo_url;
+      existing.updated_at = new Date();
+      
+      // Check if profile is complete and set the flag
+      existing.profile_completed = existing.isProfileComplete();
+      
+      await existing.save();
+      
+      // Mark onboarding as completed in main profile
+      await Profile.findOneAndUpdate(
+        { user_id: req.user.id },
+        { onboarding_completed: true }
+      );
+      
+      return res.status(200).json({ profile: existing });
     }
 
     const profile = new CompanyProfile({

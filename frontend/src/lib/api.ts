@@ -76,6 +76,9 @@ export const authAPI = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+  deleteAccount: (): Promise<{ message: string; deleted: boolean }> => apiCall('/auth/account', {
+    method: 'DELETE',
+  }),
 };
 
 // ============ INTERNSHIP ENDPOINTS ============

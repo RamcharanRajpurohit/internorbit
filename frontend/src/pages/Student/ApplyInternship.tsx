@@ -35,6 +35,9 @@ const ApplyInternship = () => {
   const { createApplication } = useStudentApplications(false);
   const isMobile = useIsMobile();
   
+  // Get student profile from Redux to check missing fields
+  const studentProfile = useSelector((state: RootState) => state.profile.studentProfile);
+  
   // Get internships from Redux
   const reduxInternships = useSelector((state: RootState) => state.internship.internships);
   
@@ -57,15 +60,31 @@ const ApplyInternship = () => {
   
   const isProfileComplete = user?.profile_completed || user?.profile_complete;
 
+  // Calculate missing fields from student profile
+  const calculateMissingFields = () => {
+    if (!studentProfile) return null;
+    
+    return {
+      bio: !studentProfile.bio || studentProfile.bio.length < 50,
+      university: !studentProfile.university,
+      degree: !studentProfile.degree,
+      graduation_year: !studentProfile.graduation_year,
+      location: !studentProfile.location,
+      skills: !studentProfile.skills || studentProfile.skills.length === 0,
+      phone: !studentProfile.phone,
+    };
+  };
+
   useEffect(() => {
     loadInternship();
     loadResumes();
     
-    // Check if profile is complete
-    if (!isProfileComplete) {
+    // Check if profile is complete and calculate missing fields
+    if (!isProfileComplete && studentProfile) {
       setShowProfileAlert(true);
+      setMissingFields(calculateMissingFields());
     }
-  }, [id, isProfileComplete]);
+  }, [id, isProfileComplete, studentProfile]);
 
   const loadInternship = async () => {
     try {
