@@ -34,27 +34,21 @@ export const useAuth = () => {
     initialAuthCheck
   };
 
-  // Only log on first mount or when critical state changes
-  if (!initialAuthCheck || error) {
-    console.log('🔐 useAuth Hook State:', debugInfo);
-  }
-
-  // Removed React Query for current user to avoid duplicate API calls
-  // Redux thunk already handles fetching current user
-  // const currentUserQuery = useCurrentUser({
-  //   enabled: false, // Disabled - Redux handles this
-  //   retry: false,
-  // });
-
   // Mutations
   const updateProfileMutation = useUpdateProfile();
 
   // Effects
   useEffect(() => {
-    // Only check auth if we haven't done an initial check yet AND we don't have a user
-    // This prevents repeated API calls when we already have user data from persist
-    if (!initialAuthCheck && !user) {
-      dispatch(checkAuth(undefined));
+    // Only check auth if we haven't done initial check
+    // Redux persist will restore user from localStorage automatically
+    if (!initialAuthCheck) {
+      // If we have persisted user data, mark as checked without API call
+      if (user) {
+        dispatch(setInitialAuthCheck());
+      } else {
+        // Only make API call if no persisted data
+        dispatch(checkAuth(undefined));
+      }
     }
   }, [dispatch, initialAuthCheck, user]);
 

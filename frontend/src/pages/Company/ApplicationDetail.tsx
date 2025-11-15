@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import Navigation from '@/components/common/Navigation';
 import {
@@ -18,7 +19,6 @@ import {
   GraduationCap,
   X,
 } from 'lucide-react';
-import { Loader } from '@/components/ui/Loader';
 import {
   Dialog,
   DialogContent,
@@ -115,12 +115,81 @@ const ApplicationDetail = () => {
     return name.charAt(0).toUpperCase();
   };
 
+  // Skeleton loader component
+  const ApplicationSkeleton = () => (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+      <Navigation role="company" />
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <Button variant="ghost" className="mb-6" disabled>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Student Info Card - Skeleton */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Skeleton className="w-20 h-20 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-7 w-48" />
+                    <Skeleton className="h-5 w-64" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-3/4" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions Card - Skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Additional sections skeleton */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader />
-      </div>
-    );
+    return <ApplicationSkeleton />;
   }
 
   if (!application) return null;
@@ -171,7 +240,7 @@ const ApplicationDetail = () => {
                       />
                     ) : (
                       <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center">
-                        <span className="text-white font-bold text-xl">
+                        <span className="text-primary-foreground font-bold text-xl">
                           {getInitials(studentName)}
                         </span>
                       </div>
@@ -465,11 +534,14 @@ const ApplicationDetail = () => {
           </DialogHeader>
 
           {previewLoading ? (
-            <div className="flex items-center justify-center h-96 bg-gray-50">
-              <Loader />
+            <div className="flex items-center justify-center h-96 bg-muted">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                <p className="text-sm text-muted-foreground">Loading resume...</p>
+              </div>
             </div>
           ) : previewUrl ? (
-            <div className="flex-1 overflow-y-auto bg-gray-50">
+            <div className="flex-1 overflow-y-auto bg-muted">
               {previewResume?.file_name?.endsWith('.pdf') ? (
                 <iframe
                   src={previewUrl}
@@ -477,9 +549,9 @@ const ApplicationDetail = () => {
                   title={previewResume?.file_name}
                 />
               ) : (
-                <div className="p-8 bg-white h-full flex flex-col items-center justify-center min-h-[500px]">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 max-w-md">
-                    <p className="text-sm text-blue-800">
+                <div className="p-8 bg-card h-full flex flex-col items-center justify-center min-h-[500px]">
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-6 mb-6 max-w-md">
+                    <p className="text-sm text-accent-foreground">
                       <strong>Note:</strong> Word documents (.docx, .doc) cannot be previewed in the browser. Please download the file to view the full content and formatting.
                     </p>
                   </div>
@@ -495,7 +567,7 @@ const ApplicationDetail = () => {
               )}
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 p-8">
+            <div className="flex-1 flex items-center justify-center bg-muted p-8">
               <p className="text-muted-foreground">Unable to load preview</p>
             </div>
           )}

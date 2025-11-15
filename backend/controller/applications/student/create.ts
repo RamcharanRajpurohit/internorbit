@@ -24,6 +24,23 @@ const createApplication = async (req: AuthRequest, res: Response) => {
     if (!student) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
+    
+    // Check if student profile is complete before allowing application
+    if (!student.isProfileComplete()) {
+      return res.status(400).json({ 
+        error: 'Please complete your profile before applying to internships',
+        profile_incomplete: true,
+        missing_fields: {
+          bio: !student.bio || student.bio.length < 50,
+          university: !student.university,
+          degree: !student.degree,
+          graduation_year: !student.graduation_year,
+          location: !student.location,
+          skills: !student.skills || student.skills.length === 0,
+          phone: !student.phone
+        }
+      });
+    }
 
     // Verify user is a student
     const profile = await Profile.findOne({ user_id: req.user.id });

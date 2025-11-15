@@ -200,7 +200,7 @@ const Settings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex items-center justify-center ">
         <Loader/>
       </div>
     );
@@ -212,7 +212,7 @@ const Settings = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-slide-up">
+          <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
                 <SettingsIcon className="w-6 h-6 text-primary-foreground" />

@@ -41,21 +41,14 @@ const CompanyDashboard = () => {
     ),
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
-
+  // Remove full-page loader for company too
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="company" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8 animate-slide-up">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
                 Company Dashboard
@@ -76,7 +69,23 @@ const CompanyDashboard = () => {
 
           {/* Stats Cards */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card className="p-6 shadow-card hover:shadow-elevated transition-all bg-gradient-card animate-scale-in">
+            {isLoading ? (
+              // Skeleton loaders for stats
+              <>
+                {[...Array(3)].map((_, index) => (
+                  <Card key={`skeleton-${index}`} className="p-6 shadow-card animate-pulse">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-10 h-10 bg-muted rounded-lg"></div>
+                      <div className="w-8 h-8 bg-muted rounded-full"></div>
+                    </div>
+                    <div className="h-8 bg-muted rounded w-16 mb-2"></div>
+                    <div className="h-4 bg-muted rounded w-32"></div>
+                  </Card>
+                ))}
+              </>
+            ) : (
+              <>
+            <Card className="p-6 shadow-card hover:shadow-elevated transition-all bg-gradient-card">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow">
                   <Briefcase className="w-6 h-6 text-primary-foreground" />
@@ -87,7 +96,7 @@ const CompanyDashboard = () => {
               <p className="text-3xl font-bold">{stats.totalInternships}</p>
             </Card>
 
-            <Card className="p-6 shadow-card hover:shadow-elevated transition-all bg-gradient-card animate-scale-in" style={{ animationDelay: "0.1s" }}>
+            <Card className="p-6 shadow-card hover:shadow-elevated transition-all bg-gradient-card">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center shadow-glow">
                   <Users className="w-6 h-6 text-secondary-foreground" />
@@ -98,7 +107,7 @@ const CompanyDashboard = () => {
               <p className="text-3xl font-bold">{stats.totalApplications}</p>
             </Card>
 
-            <Card className="p-6 shadow-card hover:shadow-elevated transition-all bg-gradient-card animate-scale-in" style={{ animationDelay: "0.2s" }}>
+            <Card className="p-6 shadow-card hover:shadow-elevated transition-all bg-gradient-card">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow">
                   <Eye className="w-6 h-6 text-primary-foreground" />
@@ -108,6 +117,8 @@ const CompanyDashboard = () => {
               <p className="text-sm text-muted-foreground mb-1">Profile Views</p>
               <p className="text-3xl font-bold">{stats.totalViews}</p>
             </Card>
+              </>
+            )}
           </div>
 
           {/* Quick Actions */}

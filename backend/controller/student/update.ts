@@ -22,6 +22,10 @@ const updateStudentProfile = async (req: AuthRequest, res: Response) => {
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
+    
+    // Update profile_completed flag based on current data
+    profile.profile_completed = profile.isProfileComplete();
+    await profile.save();
 
     res.json({ profile });
   } catch (error: any) {

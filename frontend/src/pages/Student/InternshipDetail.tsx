@@ -1,6 +1,8 @@
 // frontend/src/pages/InternshipDetail.tsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 import { internshipAPI } from "@/lib/api";
 import { useSavedJobs } from "@/hooks/useSaved";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Navigation from "@/components/common/Navigation";
 import {
@@ -23,7 +26,6 @@ import {
   ArrowLeft,
   Briefcase,
 } from "lucide-react";
-import { Loader } from "@/components/ui/Loader";
 
 const InternshipDetail = () => {
   const navigate = useNavigate();
@@ -32,6 +34,9 @@ const InternshipDetail = () => {
   
   // Detect browser refresh and refetch data
   useRouteRefresh(isStudent ? 'student' : null);
+  
+  // Get internships from Redux - they're already prefetched
+  const reduxInternships = useSelector((state: RootState) => state.internship.internships);
   
   const { saveJob, unsaveJob, savedJobs } = useSavedJobs(false);
   const isMobile = useIsMobile();
@@ -63,6 +68,23 @@ const InternshipDetail = () => {
 
   const loadInternship = async () => {
     try {
+      // First check if internship already exists in Redux (prefetched)
+      const cachedInternship = reduxInternships.find(
+        (int: any) => (int._id || int.id) === id
+      );
+      
+      if (cachedInternship) {
+        // Use cached data immediately
+        setInternship(cachedInternship);
+        setLoading(false);
+        // Optionally fetch fresh data in background
+        internshipAPI.getById(id!).then(response => {
+          setInternship(response.internship);
+        }).catch(() => {}); // Silent fail for background update
+        return;
+      }
+      
+      // If not in cache, fetch from API
       setLoading(true);
       const response = await internshipAPI.getById(id!);
       setInternship(response.internship);
@@ -93,27 +115,8 @@ const InternshipDetail = () => {
     navigate(`/apply/${id}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
-
-  if (!internship) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Internship not found</h2>
-          <Button onClick={() => navigate("/")}>Go Back</Button>
-        </div>
-      </div>
-    );
-  }
-
   // Handle company data from API response
-  const companyData = internship.company || internship.company_id;
+  const companyData = internship?.company || internship?.company_id;
   const companyProfile = companyData;
 
   return (
@@ -133,8 +136,78 @@ const InternshipDetail = () => {
             </Button>
           )}
 
-          <Card className="shadow-card overflow-hidden">
-            <CardHeader className="border-b">
+          {loading && !internship ? (
+            // Skeleton loader for first load
+            <Card className="shadow-card overflow-hidden">
+              <CardHeader className="border-b">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                    <Skeleton className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-8 w-64" />
+                      <Skeleton className="h-5 w-48" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="w-10 h-10 rounded-md" />
+                    <Skeleton className="w-32 h-10 rounded-md" />
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="pt-6">
+                {/* Quick Info Badges */}
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-8 w-28" />
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-8 p-6 bg-gradient-card rounded-xl border border-border">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="text-center p-4">
+                      <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                      <Skeleton className="h-4 w-20 mx-auto" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Content Sections */}
+                <div className="space-y-6">
+                  <div>
+                    <Skeleton className="h-6 w-32 mb-3" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-6 w-32 mb-3" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-6 w-32 mb-3" />
+                    <div className="flex flex-wrap gap-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Skeleton key={i} className="h-8 w-20" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : !internship ? (
+            // Not found state
+            <div className="text-center py-12">
+              <h2 className="text-2xl font-bold mb-4">Internship not found</h2>
+              <Button onClick={() => navigate("/")}>Go Back</Button>
+            </div>
+          ) : (
+            // Actual content
+            <Card className="shadow-card overflow-hidden">
+              <CardHeader className="border-b">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                   {companyProfile?.company_profiles?.[0]?.logo_url || companyProfile?.logo_url ? (
@@ -369,6 +442,7 @@ const InternshipDetail = () => {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </main>
     </div>

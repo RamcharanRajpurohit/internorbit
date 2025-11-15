@@ -5,6 +5,7 @@ import CreateStudentProfile from '../controller/student/create';
 import GetStudentProfile from '../controller/student/get';
 import updateStudentProfile from '../controller/student/update';
 import SearchStudentProfile from '../controller/student/search';
+import { getPublicStudentProfile } from '../controller/student/public/getPublicProfile';
 
 export const router = Router();
 
@@ -19,5 +20,8 @@ router.put('/', verifyToken,updateStudentProfile);
 
 // Search students by skills
 router.get('/search', SearchStudentProfile);
+
+// Get public student profile (for companies viewing applicants)
+router.get('/public/:user_id', verifyToken, getPublicStudentProfile);
 
 export default router;

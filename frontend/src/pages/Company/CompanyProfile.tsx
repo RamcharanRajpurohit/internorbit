@@ -130,14 +130,7 @@ const CompanyProfile = () => {
     setBenefits(benefits.filter((b) => b !== benefit));
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
-
+  // Remove full-page loader - show content with skeleton loaders
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="company" />
@@ -145,9 +138,27 @@ const CompanyProfile = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-slide-up">
+          <div className="mb-8">
             <div className="bg-gradient-card rounded-2xl p-8 border border-border shadow-card">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+              {isLoading ? (
+                // Skeleton loader for company profile header
+                <div className="animate-pulse">
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                    <div className="w-24 h-24 bg-muted rounded-full"></div>
+                    <div className="flex-1 space-y-3 text-center md:text-left w-full">
+                      <div className="h-8 bg-muted rounded w-48 mx-auto md:mx-0"></div>
+                      <div className="h-4 bg-muted rounded w-32 mx-auto md:mx-0"></div>
+                      <div className="h-16 bg-muted rounded w-full"></div>
+                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                        <div className="h-8 bg-muted rounded w-24"></div>
+                        <div className="h-8 bg-muted rounded w-24"></div>
+                        <div className="h-8 bg-muted rounded w-24"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="relative">
                   <Avatar className="w-24 h-24 ring-4 ring-border shadow-lg">
                     <AvatarImage src={formData.logo_url} />
@@ -215,6 +226,7 @@ const CompanyProfile = () => {
                   )}
                 </Button>
               </div>
+              )}
             </div>
           </div>
 

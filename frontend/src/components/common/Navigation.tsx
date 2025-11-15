@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { Home, Briefcase, Heart, User, LogOut, Building, Menu, X, ChevronRight } from "lucide-react";
+import { Home, Briefcase, Heart, User, LogOut, Building, Menu, X, ChevronRight, Moon, Sun } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface NavigationProps {
@@ -13,6 +14,7 @@ interface NavigationProps {
 const Navigation = ({ role }: NavigationProps) => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -24,6 +26,10 @@ const Navigation = ({ role }: NavigationProps) => {
     } catch (error: any) {
       toast.error(error.message || "Failed to logout");
     }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const handleNavigation = (path: string) => {
@@ -165,9 +171,23 @@ const Navigation = ({ role }: NavigationProps) => {
           </Button>
         </div>
       ) : (
-        <Button variant="ghost" onClick={handleLogout}>
-          <LogOut className="w-4 h-4" />
-        </Button>
+        <>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </Button>
+          <Button variant="ghost" onClick={handleLogout}>
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </>
       )}
     </div>
   );
@@ -208,8 +228,30 @@ const Navigation = ({ role }: NavigationProps) => {
                     InternOrbit
                   </SheetTitle>
                 </SheetHeader>
-                <div className="px-1">
+                <div className="px-1 space-y-4">
                   <NavItems isMobile={true} />
+                  
+                  {/* Theme Toggle for Mobile */}
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      onClick={toggleTheme}
+                      className="justify-start w-full"
+                    >
+                      {theme === "dark" ? (
+                        <>
+                          <Sun className="w-4 h-4 mr-3" />
+                          Light Mode
+                        </>
+                      ) : (
+                        <>
+                          <Moon className="w-4 h-4 mr-3" />
+                          Dark Mode
+                        </>
+                      )}
+                      <ChevronRight className="w-4 h-4 ml-auto" />
+                    </Button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

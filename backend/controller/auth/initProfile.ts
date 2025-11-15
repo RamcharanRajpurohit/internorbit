@@ -23,6 +23,7 @@ export const initUserProfile = async (req: AuthRequest, res: Response) => {
       full_name: full_name || email.split('@')[0],
       role: role || 'student',
       avatar_url: avatar_url || null,
+      onboarding_completed: false, // Mark as false for NEW users to trigger onboarding
     });
 
     await profile.save();

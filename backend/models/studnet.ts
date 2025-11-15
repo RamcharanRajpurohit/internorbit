@@ -13,8 +13,10 @@ export interface IStudentProfile extends Document {
   phone: string;
   linkedin_url?: string;
   github_url?: string;
+  profile_completed: boolean;
   created_at: Date;
   updated_at: Date;
+  isProfileComplete(): boolean;
 }
 
 // Mongoose schema definition
@@ -91,6 +93,10 @@ const StudentProfileSchema: Schema = new Schema<IStudentProfile>(
         message: 'Please enter a valid GitHub URL',
       },
     },
+    profile_completed: {
+      type: Boolean,
+      default: false,
+    },
     created_at: {
       type: Date,
       default: Date.now,
@@ -131,6 +137,20 @@ StudentProfileSchema.methods.hasSkill = function (skill: string): boolean {
 StudentProfileSchema.methods.isRecentGraduate = function (): boolean {
   const currentYear = new Date().getFullYear();
   return this.graduation_year >= currentYear - 2;
+};
+
+StudentProfileSchema.methods.isProfileComplete = function (): boolean {
+  return !!(
+    this.bio &&
+    this.bio.length >= 50 &&
+    this.university &&
+    this.degree &&
+    this.graduation_year &&
+    this.location &&
+    this.skills &&
+    this.skills.length > 0 &&
+    this.phone
+  );
 };
 
 StudentProfileSchema.methods.toJSON = function () {

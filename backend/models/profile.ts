@@ -7,6 +7,7 @@ export interface IProfile extends Document {
   full_name: string;
   role: 'student' | 'company' | 'admin';
   avatar_url?: string;
+  onboarding_completed: boolean;
   created_at: Date;
   updated_at: Date;
   isStudent(): boolean;
@@ -62,6 +63,10 @@ const ProfileSchema = new Schema<IProfile>(
       type: String,
       trim: true,
       default: null,
+    },
+    onboarding_completed: {
+      type: Boolean,
+      default: false,
     },
     created_at: {
       type: Date,

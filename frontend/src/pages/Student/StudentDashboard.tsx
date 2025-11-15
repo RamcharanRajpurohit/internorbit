@@ -123,29 +123,23 @@ const StudentDashboard = () => {
     return { companyName, companyLogo };
   };
 
-  if (isLoading && internships.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
-
+  // Don't show full-page loader - show content with skeleton loaders instead
+  // This eliminates the second loader after auth
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="student" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8 animate-slide-up">
+          <div className="text-center mb-8">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               Discover Internships
             </h1>
-            <p className="text-muted-foreground">Browse and save opportunities that interest you</p>
+            <p className="text-muted-foreground">Find your perfect opportunity</p>
           </div>
 
           {filteredInternships.length === 0 && !isLoading ? (
-            <div className="text-center animate-scale-in py-20">
+            <div className="text-center py-20">
               <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-2xl font-bold mb-2">No internships available</h2>
               <p className="text-muted-foreground mb-4">
@@ -160,7 +154,37 @@ const StudentDashboard = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredInternships.map((internship, index) => {
+              {/* Show skeleton loaders while loading and no data yet */}
+              {isLoading && internships.length === 0 ? (
+                <>
+                  {[...Array(8)].map((_, index) => (
+                    <Card key={`skeleton-${index}`} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="p-4 border-b border-border animate-pulse">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 bg-muted rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                              <div className="h-3 bg-muted rounded w-1/2"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          <div className="h-4 bg-muted rounded w-full"></div>
+                          <div className="h-3 bg-muted rounded w-5/6"></div>
+                          <div className="h-3 bg-muted rounded w-4/6"></div>
+                          <div className="flex gap-2 mt-4">
+                            <div className="h-8 bg-muted rounded flex-1"></div>
+                            <div className="h-8 bg-muted rounded flex-1"></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {filteredInternships.map((internship, index) => {
                 const internshipId = internship._id || internship.id;
                 const isSaved = isInternshipSaved(internship);
                 const { companyName, companyLogo } = getCompanyInfo(internship);
@@ -317,13 +341,8 @@ const StudentDashboard = () => {
                   </Card>
                 );
               })}
-            </div>
-          )}
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex justify-center py-8">
-              <Loader />
+                </>
+              )}
             </div>
           )}
         </div>

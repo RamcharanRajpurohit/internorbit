@@ -163,7 +163,7 @@ const handleSave = async () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8 animate-slide-up">
+          <div className="mb-8">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               {id ? "Edit Internship" : "Create New Internship"}
             </h1>

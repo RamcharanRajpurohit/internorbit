@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Mail, Chrome, ArrowLeft, UserCircle, Building2 } from "lucide-react";
+import { Mail, Chrome, ArrowLeft, UserCircle, Building2, Loader2 } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URI;
 
@@ -112,12 +112,11 @@ const Auth = () => {
         }
       );
 
-      toast.success('Account setup complete!');
       setShowRoleSelection(false);
       setGoogleUserData(null);
 
-      // Navigate to home - the Index component will detect the session and show dashboard
-      window.location.href = '/';
+      // Navigate immediately without window.location
+      navigate('/', { replace: true });
     } catch (error: any) {
       console.error('Role submission error:', error);
       toast.error(error.message || 'Failed to complete setup');
@@ -196,7 +195,7 @@ const Auth = () => {
 
       if (otpError) throw otpError;
 
-      toast.success('OTP sent to your email');
+      toast.success('Check your email for the OTP');
       setShowOTP(true);
       setPhoneOrEmail(email);
     } catch (error: any) {
@@ -226,22 +225,26 @@ const Auth = () => {
         throw new Error('Failed to verify OTP');
       }
 
-      // Step 2: Create backend profile
-      await createBackendProfile(data.user.id, data.session.access_token, {
-        email: data.user.email,
-        full_name: fullName,
-        role,
-      });
+      // Step 2: Check if this is a new user or existing user
+      // Only create/initialize profile for signup (when we have fullName)
+      if (isSignUp && fullName) {
+        // New user - create backend profile
+        await createBackendProfile(data.user.id, data.session.access_token, {
+          email: data.user.email,
+          full_name: fullName,
+          role,
+        });
+      }
+      // For sign-in (existing users), profile already exists - skip creation
 
-      toast.success('Account created successfully!');
       setShowOTP(false);
       setEmail("");
       setPassword("");
       setFullName("");
       setOtp("");
 
-      // Use window.location to force a full page reload and state refresh
-      window.location.href = '/auth/callback';
+      // Immediate redirect to callback
+      navigate('/auth/callback', { replace: true });
     } catch (error: any) {
       console.error('Verification error:', error);
       toast.error(error.message || 'Failed to verify OTP');
@@ -311,7 +314,7 @@ const Auth = () => {
           <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
         </div>
 
-        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
+        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10">
           <div className="text-center mb-8">
             <UserCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
             <h2 className="text-2xl font-bold mb-2">Complete Your Profile</h2>
@@ -360,7 +363,14 @@ const Auth = () => {
               className="w-full bg-gradient-primary hover:shadow-glow transition-all"
               disabled={loading}
             >
-              {loading ? "Setting up..." : "Continue"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                "Continue"
+              )}
             </Button>
           </form>
         </Card>
@@ -377,7 +387,7 @@ const Auth = () => {
           <div className="absolute bottom-20 right-20 w-96 h-96  rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
         </div>
 
-        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
+        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10">
           <Button
             variant="ghost"
             size="sm"
@@ -424,7 +434,14 @@ const Auth = () => {
               className="w-full bg-gradient-primary"
               disabled={loading || otp.length !== 6}
             >
-              {loading ? "Verifying..." : "Verify OTP"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Verify OTP"
+              )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
@@ -456,7 +473,7 @@ const Auth = () => {
           <div className="absolute bottom-20 right-20 w-96 h-96  rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
         </div>
 
-        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10 animate-scale-in">
+        <Card className="w-full max-w-md p-8 shadow-elevated bg-card/95 backdrop-blur-sm relative z-10">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               InternOrbit
@@ -473,7 +490,11 @@ const Auth = () => {
             variant="outline"
             className="w-full mb-4 border-2"
           >
-            <Chrome className="w-4 h-4 mr-2" />
+            {loading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Chrome className="w-4 h-4 mr-2" />
+            )}
             Continue with Google
           </Button>
 
@@ -519,31 +540,44 @@ const Auth = () => {
                     disabled={loading}
                   />
                 </div>
-                  {/* <div className="space-y-3">
+
+                <div className="space-y-3">
                   <Label>I am a:</Label>
-                  <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")} className="flex space-x-4">
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
-                    <RadioGroupItem value="student" id="student" disabled={loading} />
-                    <Label htmlFor="student" className="cursor-pointer">
-                      Student
-                    </Label>
+                  <RadioGroup value={role} onValueChange={(v) => setRole(v as "student" | "company")} className="flex gap-3">
+                    <div className="flex items-center flex-1 space-x-2 p-3 rounded-lg border-2 border-border hover:border-primary transition-colors cursor-pointer">
+                      <RadioGroupItem value="student" id="student-signup" disabled={loading} />
+                      <Label htmlFor="student-signup" className="cursor-pointer flex-1">
+                        <div className="flex items-center gap-2">
+                          <UserCircle className="w-4 h-4" />
+                          <span>Student</span>
+                        </div>
+                      </Label>
                     </div>
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border border-border hover:border-primary transition-colors">
-                    <RadioGroupItem value="company" id="company" disabled={loading} />
-                    <Label htmlFor="company" className="cursor-pointer">
-                      Company
-                    </Label>
+                    <div className="flex items-center flex-1 space-x-2 p-3 rounded-lg border-2 border-border hover:border-primary transition-colors cursor-pointer">
+                      <RadioGroupItem value="company" id="company-signup" disabled={loading} />
+                      <Label htmlFor="company-signup" className="cursor-pointer flex-1">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>Company</span>
+                        </div>
+                      </Label>
                     </div>
                   </RadioGroup>
-                  </div>
-                */}
+                </div>
 
                 <Button
                   type="submit"
                   className="w-full bg-gradient-primary hover:shadow-glow transition-all"
                   disabled={loading}
                 >
-                  {loading ? "Sending OTP..." : "Sign Up with Email"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    "Sign Up with Email"
+                  )}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
@@ -585,7 +619,14 @@ const Auth = () => {
                   className="w-full bg-gradient-primary hover:shadow-glow transition-all"
                   disabled={loading}
                 >
-                  {loading ? "Signing in..." : "Sign In"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </form>
             </TabsContent>

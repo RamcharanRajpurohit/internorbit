@@ -36,10 +36,12 @@ export const useInternships = (autoFetch = true, defaultParams?: any) => {
 
   // Effects
   useEffect(() => {
-    if (autoFetch && isAuthenticated && !internships.length) {
+    // Only auto-fetch if enabled, authenticated, and no data exists yet
+    // Don't fetch if we already have data (e.g., from prefetch in AuthCallback)
+    if (autoFetch && isAuthenticated && internships.length === 0 && !isLoading) {
       dispatch(fetchInternships(defaultParams || filters));
     }
-  }, [dispatch, autoFetch, isAuthenticated, internships.length, filters, defaultParams]);
+  }, [dispatch, autoFetch, isAuthenticated, internships.length, isLoading, filters, defaultParams]);
 
   // Actions
   const handleFetchInternships = useCallback(async (newFilters?: typeof filters) => {

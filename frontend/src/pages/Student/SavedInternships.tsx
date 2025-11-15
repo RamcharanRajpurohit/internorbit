@@ -98,21 +98,14 @@ const SavedInternships = () => {
 
   const total = pagination?.total || savedJobsArray.length;
 
-  if (isLoading && page === 1) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader/>
-      </div>
-    );
-  }
-
+  // Remove full-page loader - show skeleton instead
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="student" />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8 animate-slide-up">
+          <div className="mb-8">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               Saved Internships
             </h1>
@@ -121,9 +114,9 @@ const SavedInternships = () => {
             </p>
           </div>
 
-          {savedJobsArray.length === 0 ? (
-            <div className="text-center animate-scale-in py-20">
-              <div className="text-6xl mb-4">💖</div>
+          {savedJobsArray.length === 0 && !isLoading ? (
+            <div className="text-center py-20">
+              
               <h2 className="text-2xl font-bold mb-2">No saved internships yet</h2>
               <p className="text-muted-foreground mb-4">
                 Browse internships and save the ones you're interested in
@@ -137,6 +130,35 @@ const SavedInternships = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {/* Show skeleton loaders while loading */}
+              {isLoading && savedJobsArray.length === 0 ? (
+                <>
+                  {[...Array(8)].map((_, index) => (
+                    <Card key={`skeleton-${index}`} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="p-4 border-b border-border animate-pulse">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 bg-muted rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                              <div className="h-3 bg-muted rounded w-1/2"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          <div className="h-4 bg-muted rounded w-full"></div>
+                          <div className="h-3 bg-muted rounded w-5/6"></div>
+                          <div className="flex gap-2 mt-4">
+                            <div className="h-8 bg-muted rounded flex-1"></div>
+                            <div className="h-8 bg-muted rounded w-10"></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              ) : (
+                <>
               {savedJobsArray.map((item, index) => {
                 // Additional safety check for null/undefined items
                 if (!item) {
@@ -316,13 +338,8 @@ const SavedInternships = () => {
                   </Card>
                 );
               })}
-            </div>
-          )}
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex justify-center py-8">
-              <Loader />
+                </>
+              )}
             </div>
           )}
 

@@ -221,7 +221,7 @@ const Notifications = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-2xl text-primary">Loading...</div>
       </div>
     );
@@ -233,13 +233,13 @@ const Notifications = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-slide-up">
+          <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center relative">
                   <Bell className="w-6 h-6 text-primary-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-6 h-6 bg-destructive rounded-full text-xs text-white flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-6 h-6 bg-destructive rounded-full text-xs text-destructive-foreground flex items-center justify-center">
                       {unreadCount}
                     </span>
                   )}
@@ -316,7 +316,7 @@ const Notifications = () => {
               {filteredNotifications.map((notification, idx) => (
                 <Card
                   key={notification.id}
-                  className={`p-6 shadow-card hover:shadow-elevated transition-all cursor-pointer animate-scale-in ${
+                  className={`p-6 shadow-card hover:shadow-elevated transition-all cursor-pointer ${
                     !notification.read ? "border-l-4 border-l-primary" : ""
                   }`}
                   style={{ animationDelay: `${idx * 0.05}s` }}

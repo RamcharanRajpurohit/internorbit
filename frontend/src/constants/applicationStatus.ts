@@ -1,30 +1,30 @@
 import type { ApplicationStatus } from '@/types';
 
-// Application status constants
+// Application status constants with dark mode support
 export const APPLICATION_STATUS: Record<ApplicationStatus, { label: string; color: string }> = {
   pending: {
     label: 'Pending',
-    color: 'bg-yellow-500',
+    color: 'bg-yellow-500 dark:bg-yellow-600',
   },
   reviewed: {
     label: 'Reviewed',
-    color: 'bg-blue-500',
+    color: 'bg-blue-500 dark:bg-blue-600',
   },
   shortlisted: {
     label: 'Shortlisted',
-    color: 'bg-purple-500',
+    color: 'bg-purple-500 dark:bg-purple-600',
   },
   accepted: {
     label: 'Accepted',
-    color: 'bg-green-500',
+    color: 'bg-green-500 dark:bg-green-600',
   },
   rejected: {
     label: 'Rejected',
-    color: 'bg-red-500',
+    color: 'bg-red-500 dark:bg-red-600',
   },
   withdrawn: {
     label: 'Withdrawn',
-    color: 'bg-gray-500',
+    color: 'bg-muted dark:bg-muted',
   },
 };
 
@@ -42,15 +42,15 @@ export const APPLICATION_STATUS_OPTIONS: Array<{ value: ApplicationStatus; label
 export const INTERNSHIP_STATUS = {
   active: {
     label: 'Active',
-    color: 'bg-green-500',
+    color: 'bg-green-500 dark:bg-green-600',
   },
   closed: {
     label: 'Closed',
-    color: 'bg-red-500',
+    color: 'bg-red-500 dark:bg-red-600',
   },
   draft: {
     label: 'Draft',
-    color: 'bg-gray-500',
+    color: 'bg-muted dark:bg-muted',
   },
 } as const;
 
@@ -58,15 +58,15 @@ export const INTERNSHIP_STATUS = {
 export const RESUME_SCAN_STATUS = {
   pending: {
     label: 'Scanning',
-    color: 'bg-yellow-500',
+    color: 'bg-yellow-500 dark:bg-yellow-600',
   },
   clean: {
     label: 'Clean',
-    color: 'bg-green-500',
+    color: 'bg-green-500 dark:bg-green-600',
   },
   rejected: {
     label: 'Rejected',
-    color: 'bg-red-500',
+    color: 'bg-red-500 dark:bg-red-600',
   },
 } as const;
 

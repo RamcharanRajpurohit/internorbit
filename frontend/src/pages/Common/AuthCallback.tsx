@@ -1,8 +1,12 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useDispatch } from 'react-redux';
 import { checkAuth } from '@/store/slices/authSlice';
+import { fetchInternships } from '@/store/slices/internshipSlice';
+import { fetchSavedJobs } from '@/store/slices/savedSlice';
+import { fetchStudentApplications } from '@/store/slices/applicationSlice';
+import { fetchStudentProfile, fetchCompanyProfile } from '@/store/slices/profileSlice';
 import { AppDispatch } from '@/store';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -13,21 +17,12 @@ const API_URL = import.meta.env.VITE_API_URI;
 const AuthCallback = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const isProcessedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple executions using both ref and sessionStorage
-    // if (isProcessedRef.current) {
-    //   console.log('⚠️ AuthCallback already processed (ref), skipping');
-    //   return;
-    // }
-
-    // if (sessionStorage.getItem('authCallbackProcessed')) {
-    //   console.log('⚠️ AuthCallback already processed (sessionStorage), skipping');
-    //   return;
-    // }
+    // Prevent multiple executions
+    if (isProcessedRef.current) return;
+    isProcessedRef.current = true;
 
     const handleCallback = async () => {
       try {
@@ -40,8 +35,6 @@ const AuthCallback = () => {
           throw new Error('No session found. Please try again.');
         }
 
-        console.log('Session found, checking for backend profile...');
-
         // Check if profile exists in backend
         const profileCheckResponse = await fetch(`${API_URL}/auth/profile`, {
           headers: {
@@ -51,12 +44,7 @@ const AuthCallback = () => {
 
         if (profileCheckResponse.status === 404) {
           // Profile doesn't exist - redirect to auth for role selection
-          console.log('Profile not found, redirecting for role selection...');
-          toast.info('Please complete your profile setup');
-          
-          setTimeout(() => {
-            navigate('/auth?setup=true');
-          }, 500);
+          navigate('/auth?setup=true', { replace: true });
           return;
         }
 
@@ -64,82 +52,50 @@ const AuthCallback = () => {
           throw new Error('Failed to check profile status');
         }
 
-        // Profile exists - user is already set up
+        // Profile exists - get user data
         const profileData = await profileCheckResponse.json();
-        console.log('Profile found:', profileData.profile);
+        const userRole = profileData.profile?.role;
 
         // Trigger Redux auth state update
-        console.log('🔄 Triggering Redux auth check...');
         await dispatch(checkAuth(undefined)).unwrap();
-        console.log('✅ Redux auth check completed');
-
-        // Mark as processed using ref and sessionStorage to prevent re-execution
-        isProcessedRef.current = true;
-        sessionStorage.setItem('authCallbackProcessed', 'true');
-
-        toast.success('Welcome back!');
-
-        // Redirect to home
-        setTimeout(() => {
-          console.log('🏠 Redirecting to dashboard...');
-          sessionStorage.removeItem('authCallbackProcessed'); // Clear flag for next login
-          navigate('/', { replace: true });
-        }, 1500);
+        
+        // Prefetch ALL critical data based on role to eliminate loaders on other pages
+        if (userRole === 'student') {
+          // Prefetch all student data in parallel for instant navigation
+          Promise.all([
+            dispatch(fetchInternships({ page: 1, limit: 50 })),
+            dispatch(fetchSavedJobs({ page: 1, limit: 20 })),
+            dispatch(fetchStudentApplications({ page: 1, limit: 20 })),
+            dispatch(fetchStudentProfile())
+          ]).catch(err => console.warn('Prefetch warning:', err)); // Don't block on prefetch errors
+        } else if (userRole === 'company') {
+          // Prefetch company profile and internships
+          Promise.all([
+            dispatch(fetchCompanyProfile()),
+            // dispatch(fetchCompanyInternships()) // Add if you have this action
+          ]).catch(err => console.warn('Prefetch warning:', err));
+        }
+        
+        // Immediate redirect - all data is loading/cached in background
+        navigate('/', { replace: true });
 
       } catch (err: any) {
         console.error('Callback error:', err);
-        setError(err.message || 'Authentication failed');
-        toast.error(err.message || 'Something went wrong');
-
-        // Redirect to auth after 3 seconds
-        setTimeout(() => {
-          navigate('/auth');
-        }, 3000);
-      } finally {
-        setLoading(false);
-        isProcessedRef.current = true;
-        sessionStorage.setItem('authCallbackProcessed', 'true');
+        toast.error(err.message || 'Authentication failed');
+        setTimeout(() => navigate('/auth', { replace: true }), 1500);
       }
     };
 
     handleCallback();
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <Card className="w-full max-w-md p-12 shadow-elevated bg-card/95 backdrop-blur-sm text-center">
-          <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
-          <h2 className="text-xl font-bold mb-2">Completing Authentication</h2>
-          <p className="text-muted-foreground text-sm">
-            Please wait while we verify your account...
-          </p>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <Card className="w-full max-w-md p-12 shadow-elevated bg-card/95 backdrop-blur-sm">
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-destructive mb-2">Authentication Failed</h2>
-            <p className="text-muted-foreground text-sm mb-4">{error}</p>
-            <p className="text-xs text-muted-foreground">
-              Redirecting to login page...
-            </p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
+  // Show minimal loader during authentication
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
+    <div className="min-h-screen flex items-center justify-center ">
       <Card className="w-full max-w-md p-12 shadow-elevated bg-card/95 backdrop-blur-sm text-center">
-        <h2 className="text-xl font-bold mb-2">Welcome!</h2>
-        <p className="text-muted-foreground text-sm">Redirecting you now...</p>
+        <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
+        <h2 className="text-xl font-bold mb-2">Signing you in</h2>
+        <p className="text-muted-foreground text-sm">Just a moment...</p>
       </Card>
     </div>
   );

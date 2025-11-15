@@ -71,7 +71,7 @@ const CompanyInternships = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8 animate-slide-up">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
                 Your Internships
@@ -90,7 +90,7 @@ const CompanyInternships = () => {
           </div>
 
           {companyInternships.length === 0 ? (
-            <div className="text-center animate-scale-in py-20">
+            <div className="text-center py-20">
               <div className="text-6xl mb-4">💼</div>
               <h2 className="text-2xl font-bold mb-2">No internships posted yet</h2>
               <p className="text-muted-foreground mb-4">
@@ -108,7 +108,7 @@ const CompanyInternships = () => {
               {companyInternships.map((internship, idx) => (
                 <Card
                   key={internship.id}
-                  className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card animate-scale-in"
+                  className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card"
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   <CardContent className="p-0">
@@ -124,8 +124,8 @@ const CompanyInternships = () => {
                             <Badge
                               className={
                                 internship.status === "active"
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-500 text-white"
+                                  ? "bg-green-500 dark:bg-green-600 text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
                               }
                             >
                               {internship.status}

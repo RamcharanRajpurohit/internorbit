@@ -78,7 +78,7 @@ const CompanyApplicants = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader />
       </div>
     );
@@ -91,7 +91,7 @@ const CompanyApplicants = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-slide-up">
+          <div className="mb-8">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
               Job Applicants
             </h1>
@@ -120,7 +120,7 @@ const CompanyApplicants = () => {
 
           {/* Applications Grid */}
           {filteredApplications.length === 0 ? (
-            <div className="text-center animate-scale-in py-20">
+            <div className="text-center py-20">
               <div className="text-6xl mb-4">📋</div>
               <h2 className="text-2xl font-bold mb-2">No applications found</h2>
               <p className="text-muted-foreground">

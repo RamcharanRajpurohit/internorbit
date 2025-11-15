@@ -11,6 +11,8 @@ export interface User extends MongoDocument {
   email: string;
   role: 'student' | 'company';
   profile_complete: boolean;
+  profile_completed?: boolean; // Backend uses this name
+  onboarding_completed?: boolean;
 }
 
 // Company Profile types
@@ -23,6 +25,7 @@ export interface CompanyProfile extends MongoDocument {
   company_size: '1-10' | '11-50' | '51-200' | '201-500' | '501-1000' | '1000+';
   location?: string;
   logo_url?: string;
+  profile_completed?: boolean;
   // Frontend compatibility fields
   size?: string;
   headquarters?: string;
@@ -55,6 +58,7 @@ export interface StudentProfile extends MongoDocument {
   phone?: string;
   linkedin_url?: string;
   github_url?: string;
+  profile_completed?: boolean;
   // Frontend compatibility fields
   full_name?: string;
   first_name?: string;

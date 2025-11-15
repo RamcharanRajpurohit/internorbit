@@ -35,6 +35,7 @@ const GetStudentProfile = async (req: AuthRequest, res: Response) => {
           phone: 1,
           linkedin_url: 1,
           github_url: 1,
+          profile_completed: 1,
           created_at: 1,
           updated_at: 1,
           user: {
@@ -46,7 +47,22 @@ const GetStudentProfile = async (req: AuthRequest, res: Response) => {
       },
     ]).exec();
     
-    res.json({profile:profile [0] || null});
+    const studentProfile = profile[0] || null;
+    
+    // Calculate and update profile_completed if needed
+    if (studentProfile) {
+      const studentDoc = await StudentProfile.findOne({ user_id: req.user.id });
+      if (studentDoc) {
+        const isComplete = studentDoc.isProfileComplete();
+        if (studentDoc.profile_completed !== isComplete) {
+          studentDoc.profile_completed = isComplete;
+          await studentDoc.save();
+        }
+        studentProfile.profile_completed = isComplete;
+      }
+    }
+    
+    res.json({profile: studentProfile});
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

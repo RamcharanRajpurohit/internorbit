@@ -55,7 +55,7 @@ const Landing = () => {
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center animate-slide-up">
+        <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-card/80 backdrop-blur-sm rounded-full mb-6 shadow-card border border-border">
             <Zap className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Your Career Starts Here</span>
@@ -129,7 +129,7 @@ const Landing = () => {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all animate-slide-up border border-border">
+          <div className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all border border-border">
             <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-primary-foreground" />
             </div>
@@ -139,7 +139,7 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all animate-slide-up border border-border" style={{ animationDelay: "0.1s" }}>
+          <div className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all border border-border" style={{ animationDelay: "0.1s" }}>
             <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Zap className="w-8 h-8 text-primary-foreground" />
             </div>
@@ -149,7 +149,7 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all animate-slide-up border border-border" style={{ animationDelay: "0.2s" }}>
+          <div className="text-center p-8 rounded-2xl bg-card shadow-card hover:shadow-elevated transition-all border border-border" style={{ animationDelay: "0.2s" }}>
             <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-8 h-8 text-primary-foreground" />
             </div>

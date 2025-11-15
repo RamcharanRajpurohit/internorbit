@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import { internshipAPI, applicationAPI, resumeAPI } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import Navigation from '@/components/common/Navigation';
 import { ResumeUploader } from '@/components/student/ResumeUploader';
+import { ProfileCompletionAlert } from '@/components/common/ProfileCompletionAlert';
 import { 
   Send, ArrowLeft, Upload, FileText, Plus, Eye, X, Download, AlertCircle 
 } from 'lucide-react';
-import { Loader } from '@/components/ui/Loader';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +31,13 @@ import { useStudentApplications } from '@/hooks/useApplications';
 const ApplyInternship = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
   const { createApplication } = useStudentApplications(false);
   const isMobile = useIsMobile();
+  
+  // Get internships from Redux
+  const reduxInternships = useSelector((state: RootState) => state.internship.internships);
+  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [internship, setInternship] = useState<any>(null);
@@ -39,18 +48,50 @@ const ApplyInternship = () => {
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [showProfileAlert, setShowProfileAlert] = useState(false);
 
   const [formData, setFormData] = useState({
     cover_letter: '',
   });
+  
+  const isProfileComplete = user?.profile_completed || user?.profile_complete;
 
   useEffect(() => {
     loadInternship();
     loadResumes();
-  }, [id]);
+    
+    // Check if profile is complete
+    if (!isProfileComplete) {
+      setShowProfileAlert(true);
+    }
+  }, [id, isProfileComplete]);
 
   const loadInternship = async () => {
     try {
+      // First check Redux cache
+      const cachedInternship = reduxInternships.find(
+        (int: any) => (int._id || int.id) === id
+      );
+      
+      if (cachedInternship) {
+        // Use cached data immediately
+        setInternship(cachedInternship);
+        setLoading(false);
+        
+        // Fetch fresh data in background to check has_applied status
+        internshipAPI.getById(id!).then(response => {
+          const internshipData = response.internship;
+          if (internshipData.has_applied) {
+            toast.info('You have already applied to this internship');
+            setTimeout(() => navigate(`/internship/${id}`), 1500);
+            return;
+          }
+          setInternship(internshipData);
+        }).catch(() => {}); // Silent fail for background update
+        return;
+      }
+      
+      // If not in cache, fetch from API
       const response = await internshipAPI.getById(id!);
       const internshipData = response.internship;
       
@@ -144,6 +185,13 @@ const ApplyInternship = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if profile is complete before submission
+    if (!isProfileComplete) {
+      toast.error('Please complete your profile before applying');
+      setShowProfileAlert(true);
+      return;
+    }
 
     if (!selectedResumeId) {
       toast.error('Please select or upload a resume');
@@ -166,6 +214,10 @@ const ApplyInternship = () => {
       toast.success('Application submitted! Good luck! 🚀');
       navigate('/applications');
     } catch (error: any) {
+      // Check if error is about incomplete profile
+      if (error.message?.includes('complete your profile') || error.profile_incomplete) {
+        setShowProfileAlert(true);
+      }
       toast.error(error.message || 'Failed to submit application');
     } finally {
       setSubmitting(false);
@@ -174,8 +226,43 @@ const ApplyInternship = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader />
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+        <Navigation role="student" />
+        <main className="container mx-auto px-4 py-8">
+          <div className="max-w-3xl mx-auto">
+            {!isMobile && (
+              <Button variant="ghost" className="mb-4" disabled>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            )}
+            
+            <Card className="p-6">
+              <div className="space-y-6">
+                {/* Header skeleton */}
+                <div className="space-y-3">
+                  <Skeleton className="h-8 w-3/4" />
+                  <Skeleton className="h-5 w-1/2" />
+                </div>
+
+                {/* Form skeleton */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-32 w-full" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-24 w-full rounded-lg" />
+                  </div>
+
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            </Card>
+          </div>
+        </main>
       </div>
     );
   }
@@ -199,6 +286,16 @@ const ApplyInternship = () => {
             )}
 
             <Card className="p-4 sm:p-8 shadow-elevated">
+              {/* Profile Completion Alert */}
+              {showProfileAlert && !isProfileComplete && (
+                <div className="mb-6">
+                  <ProfileCompletionAlert 
+                    userRole="student"
+                    onDismiss={() => setShowProfileAlert(false)}
+                  />
+                </div>
+              )}
+              
               <div className="mb-6">
                 <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words">
                   Apply for {internship.title}
@@ -336,9 +433,9 @@ const ApplyInternship = () => {
                 </div>
 
                 {/* Tips */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 flex gap-2 sm:gap-3">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-700 min-w-0">
+                <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 sm:p-4 flex gap-2 sm:gap-3">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-accent flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-foreground min-w-0">
                     <p className="font-medium mb-1 text-xs sm:text-sm">Tips for a great application:</p>
                     <ul className="space-y-1 text-xs">
                       <li>• Personalize each cover letter</li>
@@ -384,11 +481,14 @@ const ApplyInternship = () => {
           </DialogHeader>
 
           {previewLoading ? (
-            <div className="flex items-center justify-center h-96 bg-gray-50">
-              <Loader />
+            <div className="flex items-center justify-center h-96 bg-muted">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                <p className="text-sm text-muted-foreground">Loading resume...</p>
+              </div>
             </div>
           ) : previewUrl ? (
-            <div className="flex-1 overflow-y-auto bg-gray-50">
+            <div className="flex-1 overflow-y-auto bg-muted">
               {previewResume?.file_name?.endsWith('.pdf') ? (
                 <iframe
                   src={previewUrl}
@@ -396,9 +496,9 @@ const ApplyInternship = () => {
                   title={previewResume?.file_name}
                 />
               ) : (
-                <div className="p-4 sm:p-8 bg-white h-full flex flex-col items-center justify-center min-h-[400px] sm:min-h-[500px]">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 max-w-md w-full">
-                    <p className="text-xs sm:text-sm text-blue-800">
+                <div className="p-4 sm:p-8 bg-card h-full flex flex-col items-center justify-center min-h-[400px] sm:min-h-[500px]">
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 max-w-md w-full">
+                    <p className="text-xs sm:text-sm text-accent-foreground">
                       <strong>Note:</strong> Word documents (.docx, .doc) cannot be previewed in the browser. Please download the file to view the full content and formatting.
                     </p>
                   </div>
@@ -414,7 +514,7 @@ const ApplyInternship = () => {
               )}
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 sm:p-8">
+            <div className="flex-1 flex items-center justify-center bg-muted p-4 sm:p-8">
               <p className="text-sm sm:text-base text-muted-foreground">Unable to load preview</p>
             </div>
           )}

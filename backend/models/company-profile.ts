@@ -10,8 +10,10 @@ export interface ICompanyProfile extends Document {
   company_size: '1-10' | '11-50' | '51-200' | '201-500' | '501-1000' | '1000+';
   location: string;
   logo_url?: string;
+  profile_completed: boolean;
   created_at: Date;
   updated_at: Date;
+  isProfileComplete(): boolean;
 }
 
 // Mongoose schema definition
@@ -77,6 +79,10 @@ const CompanyProfileSchema: Schema = new Schema<ICompanyProfile>(
       trim: true,
       default: null,
     },
+    profile_completed: {
+      type: Boolean,
+      default: false,
+    },
     created_at: {
       type: Date,
       default: Date.now,
@@ -107,6 +113,18 @@ CompanyProfileSchema.pre('save', function (next) {
 });
 
 // Methods
+CompanyProfileSchema.methods.isProfileComplete = function (): boolean {
+  return !!(
+    this.company_name &&
+    this.description &&
+    this.description.length >= 50 &&
+    this.website &&
+    this.industry &&
+    this.company_size &&
+    this.location
+  );
+};
+
 CompanyProfileSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;

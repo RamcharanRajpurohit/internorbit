@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { StudentProfile } from "../../models/studnet";
+import { Profile } from "../../models/profile";
 
 
 interface AuthRequest extends Request {
@@ -43,8 +44,17 @@ const CreateStudentProfile = async (req: AuthRequest, res: Response) => {
       linkedin_url: linkedin_url || null,
       github_url: github_url || null,
     });
+    
+    // Check if profile is complete and set the flag
+    profile.profile_completed = profile.isProfileComplete();
 
     await profile.save();
+    
+    // Mark onboarding as completed in main profile
+    await Profile.findOneAndUpdate(
+      { user_id: req.user?.id },
+      { onboarding_completed: true }
+    );
 
     res.status(201).json({ profile });
   } catch (error: any) {

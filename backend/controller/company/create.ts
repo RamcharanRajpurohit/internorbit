@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { CompanyProfile } from '../../models/company-profile';
+import { Profile } from '../../models/profile';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -36,8 +37,17 @@ const createCompanyProfile = async (req: AuthRequest, res: Response) => {
       location,
       logo_url: logo_url || null,
     });
+    
+    // Check if profile is complete and set the flag
+    profile.profile_completed = profile.isProfileComplete();
 
     await profile.save();
+    
+    // Mark onboarding as completed in main profile
+    await Profile.findOneAndUpdate(
+      { user_id: req.user.id },
+      { onboarding_completed: true }
+    );
 
     res.status(201).json({ profile });
   } catch (error: any) {

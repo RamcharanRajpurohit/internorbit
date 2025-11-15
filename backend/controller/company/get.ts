@@ -8,6 +8,15 @@ interface AuthRequest extends Request {
 const getCompanyProfile = async (req: AuthRequest, res: Response) => {
   try {
     const profile = await CompanyProfile.findOne({ user_id: req.user.id });
+    
+    if (profile) {
+      // Calculate and update profile_completed if needed
+      const isComplete = profile.isProfileComplete();
+      if (profile.profile_completed !== isComplete) {
+        profile.profile_completed = isComplete;
+        await profile.save();
+      }
+    }
 
     res.json({ profile: profile || null });
   } catch (error: any) {
