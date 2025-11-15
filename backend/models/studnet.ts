@@ -33,7 +33,7 @@ const StudentProfileSchema: Schema = new Schema<IStudentProfile>(
       type: String,
       
       trim: true,
-      minlength: [50, 'Bio must be at least 50 characters'],
+      minlength: [5, 'Bio must be at least 5 characters'],
       maxlength: [1000, 'Bio cannot exceed 1000 characters'],
     },
     university: {
@@ -140,9 +140,10 @@ StudentProfileSchema.methods.isRecentGraduate = function (): boolean {
 };
 
 StudentProfileSchema.methods.isProfileComplete = function (): boolean {
+  // Projects and experience are OPTIONAL - not required for profile completion
   return !!(
     this.bio &&
-    this.bio.length >= 50 &&
+    this.bio.length >= 5 &&
     this.university &&
     this.degree &&
     this.graduation_year &&

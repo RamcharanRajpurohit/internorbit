@@ -156,7 +156,14 @@ const Onboarding = ({ userRole }: OnboardingProps) => {
       toast.success("Profile setup complete! 🎉");
       navigate("/", { replace: true });
     } catch (error: any) {
-      toast.error(error.message || "Failed to complete setup");
+      console.error('Onboarding completion error:', error);
+      
+      // Show the actual error message from backend
+      const errorMessage = error.message || error.error || 'Failed to complete setup';
+      toast.error(errorMessage, {
+        description: 'Please check all fields and try again',
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }

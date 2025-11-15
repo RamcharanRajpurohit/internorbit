@@ -7,6 +7,7 @@ import { StudentProfile } from "../../models/studnet";
 export const initUserProfile = async (req: AuthRequest, res: Response) => {
    const { id, email, full_name, role, avatar_url } = req.body;
   console.log("Initializing profile for user ID:", id);
+  console.log("Received data:", { id, email, full_name, role });
 
   try {
     // 🔍 Check if profile already exists by Supabase user_id
@@ -16,11 +17,19 @@ export const initUserProfile = async (req: AuthRequest, res: Response) => {
       return res.json({ profile, message: 'Profile already exists' });
     }
 
+    // Validate required fields
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    if (!full_name || full_name.trim().length === 0) {
+      return res.status(400).json({ error: 'Full name is required' });
+    }
+
     // 🆕 Create new profile
     profile = new Profile({
-      user_id: id, //
+      user_id: id,
       email,
-      full_name: full_name || email.split('@')[0],
+      full_name: full_name.trim(),
       role: role || 'student',
       avatar_url: avatar_url || null,
       onboarding_completed: false, // Mark as false for NEW users to trigger onboarding

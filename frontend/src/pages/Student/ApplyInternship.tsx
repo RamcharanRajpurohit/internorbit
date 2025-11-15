@@ -49,6 +49,7 @@ const ApplyInternship = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showProfileAlert, setShowProfileAlert] = useState(false);
+  const [missingFields, setMissingFields] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     cover_letter: '',
@@ -214,9 +215,19 @@ const ApplyInternship = () => {
       toast.success('Application submitted! Good luck! 🚀');
       navigate('/applications');
     } catch (error: any) {
-      // Check if error is about incomplete profile
+      // Check if error is about incomplete profile and extract missing fields
       if (error.message?.includes('complete your profile') || error.profile_incomplete) {
         setShowProfileAlert(true);
+        
+        // Try to parse missing fields from error response
+        try {
+          const errorResponse = JSON.parse(error.message.split('\n')[0]);
+          if (errorResponse.missing_fields) {
+            setMissingFields(errorResponse.missing_fields);
+          }
+        } catch {
+          // If parsing fails, just show the alert without specific fields
+        }
       }
       toast.error(error.message || 'Failed to submit application');
     } finally {
@@ -292,6 +303,7 @@ const ApplyInternship = () => {
                   <ProfileCompletionAlert 
                     userRole="student"
                     onDismiss={() => setShowProfileAlert(false)}
+                    missingFields={missingFields}
                   />
                 </div>
               )}

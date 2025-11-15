@@ -57,8 +57,12 @@ const apiCall = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    const errorData = await response.json();
+    // Combine error and details for better user feedback
+    const errorMessage = errorData.details 
+      ? `${errorData.error}: ${errorData.details}`
+      : (errorData.error || 'API request failed');
+    throw new Error(errorMessage);
   }
 
   return response.json();

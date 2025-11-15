@@ -51,7 +51,18 @@ const createCompanyProfile = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ profile });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Company profile creation error:', error);
+    
+    // Return detailed validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((e: any) => e.message);
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: messages.join(', ')
+      });
+    }
+    
+    res.status(500).json({ error: error.message || 'Failed to create profile' });
   }
 }
 

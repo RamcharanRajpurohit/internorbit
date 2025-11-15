@@ -99,15 +99,24 @@ const Auth = () => {
         throw new Error('Session expired. Please try again.');
       }
 
+      // Extract name from Google metadata with fallback chain
+      const userMetadata = googleUserData.user.user_metadata || {};
+      const fullName = userMetadata.full_name || 
+                       userMetadata.name || 
+                       userMetadata.display_name ||
+                       googleUserData.user.email?.split('@')[0] || 
+                       'User';
+
+      console.log('Google user metadata:', userMetadata);
+      console.log('Extracted full name:', fullName);
+
       // Create backend profile with selected role
       await createBackendProfile(
         googleUserData.user.id,
         googleUserData.token,
         {
           email: googleUserData.user.email,
-          full_name: googleUserData.user.user_metadata?.full_name || 
-                     googleUserData.user.user_metadata?.name ||
-                     googleUserData.user.email?.split('@')[0],
+          full_name: fullName,
           role,
         }
       );
@@ -115,8 +124,11 @@ const Auth = () => {
       setShowRoleSelection(false);
       setGoogleUserData(null);
 
-      // Navigate immediately without window.location
-      navigate('/', { replace: true });
+      toast.success('Account created successfully!');
+      
+      // Navigate to onboarding instead of home to complete profile setup
+      const onboardingPath = role === 'student' ? '/onboarding' : '/onboarding/company';
+      navigate(onboardingPath, { replace: true });
     } catch (error: any) {
       console.error('Role submission error:', error);
       toast.error(error.message || 'Failed to complete setup');
@@ -128,26 +140,35 @@ const Auth = () => {
   // Create profile in backend
   const createBackendProfile = async (userId: string, token: string, userData: any) => {
     try {
+      const payload = {
+        id: userId,
+        email: userData.email || email,
+        full_name: userData.full_name || fullName,
+        role: userData.role || role,
+      };
+
+      console.log('Creating backend profile with payload:', payload);
+
       const response = await fetch(`${API_URL}/auth/initialize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          id: userId,
-          email: userData.email || email,
-          full_name: userData.full_name || fullName,
-          role: userData.role || role,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create profile');
+        const errorData = await response.json();
+        const errorMessage = errorData.details 
+          ? `${errorData.error}: ${errorData.details}`
+          : (errorData.error || 'Failed to create profile');
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Backend profile created successfully:', result);
+      return result;
     } catch (error: any) {
       console.error('Backend profile creation failed:', error);
       throw error;

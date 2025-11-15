@@ -38,7 +38,7 @@ const CompanyProfileSchema: Schema = new Schema<ICompanyProfile>(
       type: String,
       
       trim: true,
-      minlength: [50, 'Description must be at least 50 characters'],
+      minlength: [5, 'Description must be at least 5 characters'],
       maxlength: [5000, 'Description cannot exceed 5000 characters'],
     },
     website: {
@@ -117,7 +117,7 @@ CompanyProfileSchema.methods.isProfileComplete = function (): boolean {
   return !!(
     this.company_name &&
     this.description &&
-    this.description.length >= 50 &&
+    this.description.length >= 5 &&
     this.website &&
     this.industry &&
     this.company_size &&

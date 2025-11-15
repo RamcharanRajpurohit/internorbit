@@ -1,6 +1,8 @@
 // frontend/src/pages/StudentProfile.tsx - ENHANCED VERSION
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useStudentProfile } from "@/hooks/useProfile";
@@ -105,6 +107,7 @@ const mapBackendExperienceToFrontend = (backendExperience: BackendExperience): E
 
 const StudentProfile = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const [isEditing, setIsEditing] = useState(false);
 
   // Use our new state management hooks
@@ -124,8 +127,9 @@ const StudentProfile = () => {
 
   const [saving, setSaving] = useState(false);
   
-  // Basic Info
+  // Basic Info (including editable name)
   const [formData, setFormData] = useState({
+    full_name: "",
     bio: "",
     university: "",
     degree: "",
@@ -173,6 +177,7 @@ const StudentProfile = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
+        full_name: profile.user?.full_name || "",
         bio: profile.bio || "",
         university: profile.university || "",
         degree: profile.degree || "",
@@ -194,16 +199,33 @@ const StudentProfile = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Extract full_name separately as it goes to auth endpoint
+      const { full_name, ...studentProfileData } = formData;
+      
+      // Update student profile
       await updateProfile({
-        ...formData,
+        ...studentProfileData,
         skills,
         projects,
         experiences,
         // Resumes are managed separately via resume endpoints, not here
       });
 
+      // Update name via auth endpoint if changed
+      if (full_name && full_name !== profile?.user?.full_name) {
+        const { authAPI } = await import('@/lib/api');
+        await authAPI.updateProfile({ full_name });
+        
+        // Force Redux auth state refresh to sync the new name
+        const { checkAuth } = await import('@/store/slices/authSlice');
+        await dispatch(checkAuth(undefined));
+      }
+
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+      
+      // Refetch to get updated data
+      await refetch();
     } catch (error: any) {
       toast.error(error.message || "Failed to update profile");
     } finally {
@@ -407,7 +429,7 @@ const StudentProfile = () => {
                 <div className="flex-1 text-center md:text-left min-w-0">
                   <div className="mb-2">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-1 break-words">
-                      {profile?.user?.full_name || "Profile"}
+                      {isEditing ? formData.full_name : (profile?.user?.full_name || "Profile")}
                     </h1>
                     <p className="text-sm sm:text-base md:text-lg text-muted-foreground flex items-center justify-center md:justify-start gap-2 flex-wrap break-all">
                       <Mail className="w-4 h-4 flex-shrink-0" />
@@ -519,12 +541,32 @@ const StudentProfile = () => {
                 <Card className="shadow-card h-full">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2">
-                      <Phone className="w-5 h-5 text-primary" />
-                      Contact
+                      <User className="w-5 h-5 text-primary" />
+                      Personal Info
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>
+                          <User className="w-4 h-4 inline mr-2" />
+                          Full Name
+                        </Label>
+                        {isEditing ? (
+                          <Input
+                            placeholder="Your full name"
+                            value={formData.full_name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, full_name: e.target.value })
+                            }
+                          />
+                        ) : (
+                          <p className="text-muted-foreground font-medium">
+                            {formData.full_name || "Not provided"}
+                          </p>
+                        )}
+                      </div>
+
                       <div className="space-y-2">
                         <Label>
                           <Phone className="w-4 h-4 inline mr-2" />
