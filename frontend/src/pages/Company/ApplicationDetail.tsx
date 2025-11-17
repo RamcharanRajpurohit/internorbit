@@ -61,7 +61,8 @@ const ApplicationDetail = () => {
         'view'
       );
 
-      setPreviewUrl(data.url);
+      // Backend returns 'signed_url', not 'url'
+      setPreviewUrl(data.signed_url || data.url);
     } catch (error: any) {
       toast.error('Failed to load resume');
       setPreviewOpen(false);
@@ -85,7 +86,8 @@ const ApplicationDetail = () => {
       );
 
       const link = document.createElement('a');
-      link.href = data.url;
+      // Backend returns 'signed_url', not 'url'
+      link.href = data.signed_url || data.url;
       link.download = typeof application.resume_id === 'object'
         ? application.resume_id.file_name || 'resume.pdf'
         : 'resume.pdf';

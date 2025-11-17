@@ -146,7 +146,7 @@ const CompanyApplicants = () => {
                   <Card
                     key={app._id}
                     className="group hover:shadow-elevated transition-all duration-300 cursor-pointer overflow-hidden bg-gradient-card"
-                    onClick={() => navigate(`/company/applications/${app._id}`)}
+                    onClick={() => navigate(`/applications/${app._id}`)}
                   >
                     <CardContent className="p-0">
                       {/* Student Header */}
@@ -234,7 +234,7 @@ const CompanyApplicants = () => {
                             className="flex-1 text-xs"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/company/applications/${app._id}`);
+                              navigate(`/applications/${app._id}`);
                             }}
                           >
                             <Eye className="w-3 h-3 mr-1" />

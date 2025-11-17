@@ -169,11 +169,14 @@ export const useApplicationDetail = (id?: string) => {
     error,
   } = useSelector((state: RootState) => state.application);
 
+  // Extract the current application ID to avoid infinite loops
+  const currentApplicationId = currentApplication?._id || currentApplication?.id;
+
   useEffect(() => {
-    if (id && isAuthenticated && (!currentApplication || currentApplication.id !== id)) {
+    if (id && isAuthenticated && currentApplicationId !== id) {
       dispatch(fetchApplicationById(id));
     }
-  }, [dispatch, id, isAuthenticated, currentApplication]);
+  }, [dispatch, id, isAuthenticated, currentApplicationId]);
 
   const handleFetchApplication = useCallback(
     async (applicationId: string) => {

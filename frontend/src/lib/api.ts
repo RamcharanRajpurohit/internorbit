@@ -277,13 +277,13 @@ export const studentProfileAPI = {
 };
 
 export const resumeAPI = {
-  getApplicationResume: (resumeId: string, applicationId: string, accessType: 'view' | 'download' = 'view'): Promise<{ url: string; access_token: string }> =>
+  getApplicationResume: (resumeId: string, applicationId: string, accessType: 'view' | 'download' = 'view'): Promise<{ signed_url: string; url?: string; access_token?: string; expires_in: number; access_type: string }> =>
     apiCall(`/resume/${resumeId}/access?application_id=${applicationId}&access_type=${accessType}`, {
       method: 'POST',
     }),
 
   // Get student's own resume for viewing
-  getStudentResume: (resumeId: string, accessType: 'view' | 'download' = 'view'): Promise<{ url: string; access_token: string }> =>
+  getStudentResume: (resumeId: string, accessType: 'view' | 'download' = 'view'): Promise<{ signed_url: string; url?: string; access_token?: string; expires_in: number; access_type: string }> =>
     apiCall(`/resume/${resumeId}/access?access_type=${accessType}`, {
       method: 'POST',
     }),
