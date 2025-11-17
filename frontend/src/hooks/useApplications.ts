@@ -26,14 +26,15 @@ export const useStudentApplications = (autoFetch = true) => {
     isSubmitting,
     isUpdating,
     error,
+    hasFetchedStudentApplications,
     pagination,
   } = useSelector((state: RootState) => state.application);
 
   useEffect(() => {
-    if (autoFetch && isAuthenticated && isStudent && !studentApplications.length) {
+    if (autoFetch && isAuthenticated && isStudent && !hasFetchedStudentApplications) {
       dispatch(fetchStudentApplications({}));
     }
-  }, [dispatch, autoFetch, isAuthenticated, isStudent, studentApplications.length]);
+  }, [dispatch, autoFetch, isAuthenticated, isStudent, hasFetchedStudentApplications]);
 
   const handleFetchApplications = useCallback(
     async (params?: { page?: number; limit?: number; status?: ApplicationStatus }) => {
@@ -105,14 +106,15 @@ export const useCompanyApplications = (autoFetch = true) => {
     isLoading,
     isUpdating,
     error,
+    hasFetchedCompanyApplications,
     pagination,
   } = useSelector((state: RootState) => state.application);
 
   useEffect(() => {
-    if (autoFetch && isAuthenticated && isCompany && !companyApplications.length) {
+    if (autoFetch && isAuthenticated && isCompany && !hasFetchedCompanyApplications) {
       dispatch(fetchCompanyApplications({}));
     }
-  }, [dispatch, autoFetch, isAuthenticated, isCompany, companyApplications.length]);
+  }, [dispatch, autoFetch, isAuthenticated, isCompany, hasFetchedCompanyApplications]);
 
   const handleFetchApplications = useCallback(
     async (params?: { page?: number; limit?: number; status?: ApplicationStatus }) => {

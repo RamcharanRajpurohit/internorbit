@@ -202,7 +202,7 @@ const StudentProfile = () => {
       // Extract full_name separately as it goes to auth endpoint
       const { full_name, ...studentProfileData } = formData;
       
-      // Update student profile (this now also refetches profile to get updated profile_completed)
+      // Update student profile
       await updateProfile({
         ...studentProfileData,
         skills,
@@ -217,12 +217,15 @@ const StudentProfile = () => {
         await authAPI.updateProfile({ full_name });
       }
       
-      // Refresh auth state to get updated profile_completed flag
+      // Always refresh auth state to get updated profile_completed flag
       const { checkAuth } = await import('@/store/slices/authSlice');
       await dispatch(checkAuth(undefined));
 
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+      
+      // Refetch to get updated data
+      await refetch();
     } catch (error: any) {
       toast.error(error.message || "Failed to update profile");
     } finally {

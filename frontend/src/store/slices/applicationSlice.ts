@@ -29,6 +29,8 @@ export interface ApplicationState {
   isSubmitting: boolean;
   isUpdating: boolean;
   error: string | null;
+  hasFetchedStudentApplications: boolean;
+  hasFetchedCompanyApplications: boolean;
   pagination: {
     student: PaginationInfo;
     company: PaginationInfo;
@@ -218,6 +220,8 @@ const initialState: ApplicationState = {
   isSubmitting: false,
   isUpdating: false,
   error: null,
+  hasFetchedStudentApplications: false,
+  hasFetchedCompanyApplications: false,
   pagination: {
     student: {
       page: 1,
@@ -312,6 +316,8 @@ const applicationSlice = createSlice({
       state.studentApplications = [];
       state.companyApplications = [];
       state.currentApplication = null;
+      state.hasFetchedStudentApplications = false;
+      state.hasFetchedCompanyApplications = false;
       state.pagination = {
         student: { page: 1, limit: 20, total: 0, totalPages: 1 },
         company: { page: 1, limit: 20, total: 0, totalPages: 1 },
@@ -330,11 +336,13 @@ const applicationSlice = createSlice({
         state.isLoading = false;
         state.studentApplications = action.payload.applications;
         state.pagination.student = action.payload.pagination;
+        state.hasFetchedStudentApplications = true;
         state.error = null;
       })
       .addCase(fetchStudentApplications.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.hasFetchedStudentApplications = true; // Mark as fetched even on error
       });
 
     // Fetch company applications
@@ -347,11 +355,13 @@ const applicationSlice = createSlice({
         state.isLoading = false;
         state.companyApplications = action.payload.applications;
         state.pagination.company = action.payload.pagination;
+        state.hasFetchedCompanyApplications = true;
         state.error = null;
       })
       .addCase(fetchCompanyApplications.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.hasFetchedCompanyApplications = true; // Mark as fetched even on error
       });
 
     // Create application

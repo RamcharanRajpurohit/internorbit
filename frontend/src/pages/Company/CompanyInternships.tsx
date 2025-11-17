@@ -7,7 +7,6 @@ import Navigation from "@/components/common/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyInternships } from "@/hooks/useInternships";
-import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 
 import {
   MapPin,
@@ -39,9 +38,6 @@ const CompanyInternships = () => {
   // Use Redux hooks for state management
   const { isAuthenticated, isCompany } = useAuth();
   const { companyInternships, isLoading, refetch } = useCompanyInternships();
-  
-  // Handle browser refresh to fetch fresh data
-  useRouteRefresh(isCompany ? 'company' : null);
 
   useEffect(() => {
     if (!isAuthenticated || !isCompany) {
