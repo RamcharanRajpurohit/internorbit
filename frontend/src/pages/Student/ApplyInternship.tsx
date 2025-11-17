@@ -65,7 +65,7 @@ const ApplyInternship = () => {
     if (!studentProfile) return null;
     
     return {
-      bio: !studentProfile.bio || studentProfile.bio.length < 50,
+      bio: !studentProfile.bio || studentProfile.bio.length < 5,
       university: !studentProfile.university,
       degree: !studentProfile.degree,
       graduation_year: !studentProfile.graduation_year,

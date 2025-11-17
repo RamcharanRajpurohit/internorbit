@@ -31,7 +31,7 @@ const createApplication = async (req: AuthRequest, res: Response) => {
         error: 'Please complete your profile before applying to internships',
         profile_incomplete: true,
         missing_fields: {
-          bio: !student.bio || student.bio.length < 50,
+          bio: !student.bio || student.bio.length < 5,
           university: !student.university,
           degree: !student.degree,
           graduation_year: !student.graduation_year,

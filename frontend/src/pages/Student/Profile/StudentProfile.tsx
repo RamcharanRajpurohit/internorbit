@@ -215,11 +215,11 @@ const StudentProfile = () => {
       if (full_name && full_name !== profile?.user?.full_name) {
         const { authAPI } = await import('@/lib/api');
         await authAPI.updateProfile({ full_name });
-        
-        // Force Redux auth state refresh to sync the new name
-        const { checkAuth } = await import('@/store/slices/authSlice');
-        await dispatch(checkAuth(undefined));
       }
+      
+      // Always refresh auth state to get updated profile_completed flag
+      const { checkAuth } = await import('@/store/slices/authSlice');
+      await dispatch(checkAuth(undefined));
 
       toast.success("Profile updated successfully!");
       setIsEditing(false);
