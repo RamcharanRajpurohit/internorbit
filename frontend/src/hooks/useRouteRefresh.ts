@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '@/store';
-import { fetchInternships } from '@/store/slices/internshipSlice';
+import { fetchInternships, fetchCompanyInternships } from '@/store/slices/internshipSlice';
 import { fetchStudentApplications, fetchCompanyApplications } from '@/store/slices/applicationSlice';
 import { fetchStudentProfile, fetchCompanyProfile } from '@/store/slices/profileSlice';
 import { fetchSavedJobs } from '@/store/slices/savedSlice';
@@ -97,6 +97,28 @@ const refetchRouteData = async (pathname: string, userRole: 'student' | 'company
       } else if (userRole === 'company') {
         await dispatch(fetchCompanyProfile());
       }
+    }
+    
+    // Company internships page
+    else if (pathname === '/company/internships' && userRole === 'company') {
+      console.log('💼 Refetching company internships...');
+      await dispatch(fetchCompanyInternships({}));
+    }
+    
+    // Company applicants page
+    else if (pathname === '/company/applicants' && userRole === 'company') {
+      console.log('👥 Refetching company applicants...');
+      await dispatch(fetchCompanyApplications({ page: 1, limit: 100 }));
+    }
+    
+    // Company dashboard
+    else if (pathname === '/company' && userRole === 'company') {
+      console.log('📊 Refetching company dashboard data...');
+      await Promise.all([
+        dispatch(fetchCompanyInternships({})),
+        dispatch(fetchCompanyApplications({ page: 1, limit: 100 })),
+        dispatch(fetchCompanyProfile())
+      ]);
     }
     
     // Internship detail page

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/common/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouteRefresh } from "@/hooks/useRouteRefresh";
 import { useCompanyInternships } from "@/hooks/useInternships";
 
 import {
@@ -37,6 +38,10 @@ const CompanyInternships = () => {
 
   // Use Redux hooks for state management
   const { isAuthenticated, isCompany } = useAuth();
+  
+  // Detect browser refresh and refetch data
+  useRouteRefresh(isCompany ? 'company' : null);
+  
   const { companyInternships, isLoading, refetch } = useCompanyInternships();
 
   useEffect(() => {
@@ -57,14 +62,7 @@ const CompanyInternships = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center ">
-        <Loader/>
-      </div>
-    );
-  }
-
+  // Remove full-page loader - show content with skeleton loaders
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="company" />
@@ -77,7 +75,7 @@ const CompanyInternships = () => {
                 Your Internships
               </h1>
               <p className="text-muted-foreground">
-                {companyInternships.length} internships posted
+                {isLoading ? 'Loading...' : `${companyInternships.length} internships posted`}
               </p>
             </div>
             <Button
@@ -89,7 +87,36 @@ const CompanyInternships = () => {
             </Button>
           </div>
 
-          {companyInternships.length === 0 ? (
+          {isLoading ? (
+            // Skeleton loaders for internships
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, index) => (
+                <Card key={`skeleton-${index}`} className="overflow-hidden bg-gradient-card animate-pulse">
+                  <CardContent className="p-0">
+                    <div className="p-4 border-b border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-xl bg-muted"></div>
+                          <div className="space-y-2">
+                            <div className="h-3 bg-muted rounded w-16"></div>
+                            <div className="h-5 bg-muted rounded w-20"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <div className="h-6 bg-muted rounded w-3/4"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded w-full"></div>
+                        <div className="h-4 bg-muted rounded w-full"></div>
+                        <div className="h-4 bg-muted rounded w-2/3"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : companyInternships.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-6xl mb-4">💼</div>
               <h2 className="text-2xl font-bold mb-2">No internships posted yet</h2>

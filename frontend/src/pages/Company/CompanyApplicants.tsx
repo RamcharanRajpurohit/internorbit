@@ -76,14 +76,7 @@ const CompanyApplicants = () => {
     return name.charAt(0).toUpperCase();
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader />
-      </div>
-    );
-  }
-
+  // Remove full-page loader - show content with skeleton loaders
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       <Navigation role="company" />
@@ -96,7 +89,7 @@ const CompanyApplicants = () => {
               Job Applicants
             </h1>
             <p className="text-muted-foreground">
-              {applications.length} total application{applications.length !== 1 ? 's' : ''}
+              {isLoading ? 'Loading...' : `${applications.length} total application${applications.length !== 1 ? 's' : ''}`}
             </p>
           </div>
 
@@ -119,7 +112,40 @@ const CompanyApplicants = () => {
           </div>
 
           {/* Applications Grid */}
-          {filteredApplications.length === 0 ? (
+          {isLoading ? (
+            // Skeleton loaders for applications
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, index) => (
+                <Card key={`skeleton-${index}`} className="overflow-hidden bg-gradient-card animate-pulse">
+                  <CardContent className="p-0">
+                    <div className="p-4 border-b border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-muted"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-muted rounded w-24"></div>
+                            <div className="h-3 bg-muted rounded w-20"></div>
+                          </div>
+                        </div>
+                        <div className="h-6 bg-muted rounded w-20"></div>
+                      </div>
+                      <div className="h-5 bg-muted rounded w-3/4"></div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <div className="flex gap-2">
+                        <div className="h-6 bg-muted rounded w-24"></div>
+                        <div className="h-6 bg-muted rounded w-20"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded w-full"></div>
+                        <div className="h-4 bg-muted rounded w-2/3"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredApplications.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-6xl mb-4">📋</div>
               <h2 className="text-2xl font-bold mb-2">No applications found</h2>

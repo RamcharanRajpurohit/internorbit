@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +26,7 @@ import { useCompanyProfile } from "@/hooks/useProfile";
 
 const CompanyProfile = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -35,7 +38,10 @@ const CompanyProfile = () => {
   const {
     companyProfile,
     isLoading,
+    isUpdating,
+    error,
     updateProfile,
+    refetch,
   } = useCompanyProfile();
 
   const [formData, setFormData] = useState({
@@ -97,8 +103,15 @@ const CompanyProfile = () => {
         benefits,
       });
 
+      // Always refresh auth state to get updated profile_completed flag
+      const { checkAuth } = await import('@/store/slices/authSlice');
+      await dispatch(checkAuth(undefined));
+
       toast.success("Company profile saved successfully!");
       setIsEditing(false);
+      
+      // Refetch to get updated data
+      await refetch();
     } catch (error: any) {
       toast.error(error.message || "Failed to save profile");
     } finally {
@@ -139,16 +152,16 @@ const CompanyProfile = () => {
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="bg-gradient-card rounded-2xl p-8 border border-border shadow-card">
+            <div className="bg-gradient-card rounded-2xl p-4 sm:p-8 border border-border shadow-card">
               {isLoading ? (
                 // Skeleton loader for company profile header
                 <div className="animate-pulse">
-                  <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                    <div className="w-24 h-24 bg-muted rounded-full"></div>
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-muted rounded-full"></div>
                     <div className="flex-1 space-y-3 text-center md:text-left w-full">
                       <div className="h-8 bg-muted rounded w-48 mx-auto md:mx-0"></div>
                       <div className="h-4 bg-muted rounded w-32 mx-auto md:mx-0"></div>
-                      <div className="h-16 bg-muted rounded w-full"></div>
+                      <div className="h-12 bg-muted rounded w-full"></div>
                       <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                         <div className="h-8 bg-muted rounded w-24"></div>
                         <div className="h-8 bg-muted rounded w-24"></div>
@@ -158,11 +171,11 @@ const CompanyProfile = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6">
                 <div className="relative">
-                  <Avatar className="w-24 h-24 ring-4 ring-border shadow-lg">
+                  <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-border shadow-lg">
                     <AvatarImage src={formData.logo_url} />
-                    <AvatarFallback className="bg-gradient-secondary text-secondary-foreground text-3xl">
+                    <AvatarFallback className="bg-gradient-secondary text-secondary-foreground text-2xl sm:text-3xl">
                       {formData.company_name?.[0]?.toUpperCase() || "C"}
                     </AvatarFallback>
                   </Avatar>
@@ -177,32 +190,32 @@ const CompanyProfile = () => {
                   )}
                 </div>
 
-                <div className="flex-1 text-center md:text-left">
+                <div className="flex-1 text-center md:text-left min-w-0">
                   <div className="mb-2">
-                    <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-1">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-1 break-words">
                       {formData.company_name || "Company Profile"}
                     </h1>
-                    <p className="text-lg text-muted-foreground flex items-center justify-center md:justify-start gap-2">
-                      <Building className="w-4 h-4" />
-                      {formData.industry || "Company"}
+                    <p className="text-sm sm:text-base md:text-lg text-muted-foreground flex items-center justify-center md:justify-start gap-2 flex-wrap break-all">
+                      <Building className="w-4 h-4 flex-shrink-0" />
+                      <span className="break-all">{formData.industry || "Company"}</span>
                     </p>
                   </div>
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 break-words">
                     {formData.company_size} employees • Founded {formData.founded_year}
                   </p>
 
                   {/* Quick Stats */}
-                  <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm">
+                  <div className="flex flex-wrap gap-3 sm:gap-4 justify-center md:justify-start text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       <span className="font-medium">{formData.company_size} Team Size</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-primary" />
+                      <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       <span className="font-medium">{formData.location || "Global"}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-primary" />
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       <span className="font-medium">{formData.founded_year} Founded</span>
                     </div>
                   </div>
@@ -211,7 +224,7 @@ const CompanyProfile = () => {
                 <Button
                   onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
                   disabled={saving}
-                  className="bg-gradient-primary hover:shadow-glow transition-all px-6 py-3"
+                  className="bg-gradient-primary hover:shadow-glow transition-all px-4 sm:px-6 py-2 sm:py-3 w-full md:w-auto text-sm sm:text-base"
                 >
                   {isEditing ? (
                     <>
@@ -231,28 +244,30 @@ const CompanyProfile = () => {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl">
-              <TabsTrigger value="overview" className="rounded-lg">
-                <Building className="w-4 h-4 mr-2" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="contact" className="rounded-lg">
-                <Mail className="w-4 h-4 mr-2" />
-                Contact
-              </TabsTrigger>
-              <TabsTrigger value="culture" className="rounded-lg">
-                <Users className="w-4 h-4 mr-2" />
-                Culture
-              </TabsTrigger>
-              <TabsTrigger value="benefits" className="rounded-lg">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Benefits
-              </TabsTrigger>
-              <TabsTrigger value="branding" className="rounded-lg">
-                <Globe className="w-4 h-4 mr-2" />
-                Branding
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5 bg-muted/50 p-1 rounded-xl">
+                <TabsTrigger value="overview" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Building className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="contact" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Mail className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Contact
+                </TabsTrigger>
+                <TabsTrigger value="culture" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Culture
+                </TabsTrigger>
+                <TabsTrigger value="benefits" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Benefits
+                </TabsTrigger>
+                <TabsTrigger value="branding" className="flex-shrink-0 rounded-lg whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4">
+                  <Globe className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Branding
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Overview Tab */}
             <TabsContent value="overview">
