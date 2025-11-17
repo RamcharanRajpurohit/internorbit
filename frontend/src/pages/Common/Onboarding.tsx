@@ -73,6 +73,62 @@ const Onboarding = ({ userRole }: OnboardingProps) => {
   const progress = (currentStep / totalSteps) * 100;
 
   const handleNext = () => {
+    // Validate current step before proceeding
+    if (userRole === "student") {
+      if (currentStep === 1) {
+        if (!studentData.bio || studentData.bio.length < 5) {
+          toast.error("Please provide a bio with at least 5 characters");
+          return;
+        }
+        if (!studentData.phone) {
+          toast.error("Please enter your phone number");
+          return;
+        }
+        if (!studentData.location) {
+          toast.error("Please enter your location");
+          return;
+        }
+      } else if (currentStep === 2) {
+        if (!studentData.university) {
+          toast.error("Please enter your university");
+          return;
+        }
+        if (!studentData.degree) {
+          toast.error("Please enter your degree");
+          return;
+        }
+        if (!studentData.graduation_year) {
+          toast.error("Please enter your graduation year");
+          return;
+        }
+      }
+      // Step 3 (skills) will be validated in handleComplete
+    } else {
+      // Company validation
+      if (currentStep === 1) {
+        if (!companyData.company_name) {
+          toast.error("Please enter your company name");
+          return;
+        }
+        if (!companyData.description || companyData.description.length < 5) {
+          toast.error("Please provide a company description with at least 5 characters");
+          return;
+        }
+        if (!companyData.industry) {
+          toast.error("Please enter your industry");
+          return;
+        }
+        if (!companyData.website) {
+          toast.error("Please enter your company website");
+          return;
+        }
+        if (!companyData.location) {
+          toast.error("Please enter your company location");
+          return;
+        }
+      }
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -124,6 +180,43 @@ const Onboarding = ({ userRole }: OnboardingProps) => {
     setLoading(true);
     try {
       if (userRole === "student") {
+        // Validate required fields for students
+        if (!studentData.bio || studentData.bio.length < 5) {
+          toast.error("Please provide a bio with at least 5 characters");
+          setLoading(false);
+          return;
+        }
+        if (!studentData.university) {
+          toast.error("Please enter your university");
+          setLoading(false);
+          return;
+        }
+        if (!studentData.degree) {
+          toast.error("Please enter your degree");
+          setLoading(false);
+          return;
+        }
+        if (!studentData.graduation_year) {
+          toast.error("Please enter your graduation year");
+          setLoading(false);
+          return;
+        }
+        if (!studentData.location) {
+          toast.error("Please enter your location");
+          setLoading(false);
+          return;
+        }
+        if (!studentData.skills || studentData.skills.length === 0) {
+          toast.error("Please add at least one skill");
+          setLoading(false);
+          return;
+        }
+        if (!studentData.phone) {
+          toast.error("Please enter your phone number");
+          setLoading(false);
+          return;
+        }
+
         await studentProfileAPI.createProfile({
           bio: studentData.bio,
           university: studentData.university,
@@ -136,6 +229,33 @@ const Onboarding = ({ userRole }: OnboardingProps) => {
           phone: studentData.phone,
         });
       } else {
+        // Validate required fields for companies
+        if (!companyData.company_name) {
+          toast.error("Please enter your company name");
+          setLoading(false);
+          return;
+        }
+        if (!companyData.description || companyData.description.length < 5) {
+          toast.error("Please provide a company description with at least 5 characters");
+          setLoading(false);
+          return;
+        }
+        if (!companyData.website) {
+          toast.error("Please enter your company website");
+          setLoading(false);
+          return;
+        }
+        if (!companyData.industry) {
+          toast.error("Please enter your industry");
+          setLoading(false);
+          return;
+        }
+        if (!companyData.location) {
+          toast.error("Please enter your company location");
+          setLoading(false);
+          return;
+        }
+
         await companyProfileAPI.createProfile({
           company_name: companyData.company_name,
           description: companyData.description,

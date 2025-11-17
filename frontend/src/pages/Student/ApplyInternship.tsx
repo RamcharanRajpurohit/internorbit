@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
 import { internshipAPI, applicationAPI, resumeAPI } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchStudentProfile } from '@/store/slices/profileSlice';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,7 @@ import { useStudentApplications } from '@/hooks/useApplications';
 const ApplyInternship = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useAuth();
   const { createApplication } = useStudentApplications(false);
   const isMobile = useIsMobile();
@@ -58,8 +60,6 @@ const ApplyInternship = () => {
     cover_letter: '',
   });
   
-  const isProfileComplete = user?.profile_completed || user?.profile_complete;
-
   // Calculate missing fields from student profile
   const calculateMissingFields = () => {
     if (!studentProfile) return null;
@@ -75,16 +75,58 @@ const ApplyInternship = () => {
     };
   };
 
+  // Calculate profile completion from actual student profile data
+  // This is more reliable than relying on cached user.profile_completed flag
+  const checkProfileComplete = () => {
+    if (!studentProfile) return false;
+    
+    return !!(
+      studentProfile.bio &&
+      studentProfile.bio.length >= 5 &&
+      studentProfile.university &&
+      studentProfile.degree &&
+      studentProfile.graduation_year &&
+      studentProfile.location &&
+      studentProfile.skills &&
+      studentProfile.skills.length > 0 &&
+      studentProfile.phone
+    );
+  };
+
+  // Use computed value for profile completion
+  const isProfileComplete = checkProfileComplete();
+
+  // Fetch student profile if not loaded
+  useEffect(() => {
+    if (user?.role === 'student' && !studentProfile) {
+      dispatch(fetchStudentProfile(undefined));
+    }
+  }, [user, studentProfile, dispatch]);
+
+  // Refetch profile when component mounts to ensure fresh data
+  useEffect(() => {
+    if (user?.role === 'student') {
+      // Always refetch profile to ensure we have the latest data
+      dispatch(fetchStudentProfile(undefined));
+    }
+  }, [id]); // Refetch when internship ID changes (new application page)
+
   useEffect(() => {
     loadInternship();
     loadResumes();
     
     // Check if profile is complete and calculate missing fields
-    if (!isProfileComplete && studentProfile) {
-      setShowProfileAlert(true);
-      setMissingFields(calculateMissingFields());
+    const missing = calculateMissingFields();
+    setMissingFields(missing);
+    
+    // Show alert only if there are actually missing fields
+    if (missing) {
+      const hasMissingFields = Object.values(missing).some(value => value === true);
+      setShowProfileAlert(hasMissingFields);
+    } else {
+      setShowProfileAlert(false);
     }
-  }, [id, isProfileComplete, studentProfile]);
+  }, [id, studentProfile]);
 
   const loadInternship = async () => {
     try {
