@@ -35,7 +35,7 @@ export function ProfileCompletionAlert({ userRole, onDismiss, missingFields }: P
     if (!missingFields) return null;
 
     const fieldLabels: Record<string, string> = {
-      bio: "Bio (min 5 characters)",
+      bio: "Bio (min 50 characters)",
       university: "University",
       degree: "Degree",
       graduation_year: "Graduation Year",
