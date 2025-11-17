@@ -22,7 +22,8 @@ export const useStudentProfile = () => {
     error,
   } = useSelector((state: RootState) => state.profile);
 
-  // Effects
+  // Effects - fetch profile if authenticated and student
+  // Note: Browser refresh is handled by useRouteRefresh hook in components
   useEffect(() => {
     if (isAuthenticated && isStudent && !studentProfile) {
       dispatch(fetchStudentProfile(undefined));
@@ -33,6 +34,11 @@ export const useStudentProfile = () => {
   const handleUpdateProfile = async (profileData: any) => {
     try {
       const result = await dispatch(updateStudentProfile(profileData)).unwrap();
+      
+      // After updating profile, also refetch to ensure we have the latest data
+      // including computed fields like profile_completed
+      await dispatch(fetchStudentProfile(undefined));
+      
       return result;
     } catch (error: any) {
       throw error;
@@ -66,7 +72,8 @@ export const useCompanyProfile = () => {
     error,
   } = useSelector((state: RootState) => state.profile);
 
-  // Effects
+  // Effects - fetch profile if authenticated and company
+  // Note: Browser refresh is handled by useRouteRefresh hook in components
   useEffect(() => {
     if (isAuthenticated && isCompany && !companyProfile) {
       dispatch(fetchCompanyProfile(undefined));
@@ -77,6 +84,11 @@ export const useCompanyProfile = () => {
   const handleUpdateProfile = async (profileData: any) => {
     try {
       const result = await dispatch(updateCompanyProfile(profileData)).unwrap();
+      
+      // After updating profile, also refetch to ensure we have the latest data
+      // including computed fields like profile_completed
+      await dispatch(fetchCompanyProfile(undefined));
+      
       return result;
     } catch (error: any) {
       throw error;

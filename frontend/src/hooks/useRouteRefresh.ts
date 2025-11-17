@@ -7,45 +7,33 @@ import { fetchStudentApplications, fetchCompanyApplications } from '@/store/slic
 import { fetchStudentProfile, fetchCompanyProfile } from '@/store/slices/profileSlice';
 import { fetchSavedJobs } from '@/store/slices/savedSlice';
 
-// Global flag to track if we've already checked for browser refresh
-// This ensures we only check ONCE per app session, not on every component mount
-let hasCheckedForRefresh = false;
-
 /**
  * Hook to detect browser refresh (F5, Ctrl+R, etc.) and refetch route-specific data
- * Does NOT trigger on navigation - only on actual browser refresh
+ * Triggers on browser refresh to ensure fresh data from server
  */
 export const useRouteRefresh = (userRole: 'student' | 'company' | null) => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
+  const hasRefreshed = useRef(false);
   const prevPathname = useRef(location.pathname);
 
   useEffect(() => {
-    // Only check for refresh ONCE per app session (not per component mount)
-    if (!hasCheckedForRefresh) {
-      hasCheckedForRefresh = true;
-      
-      // Check if this is a browser refresh by checking navigation type
-      const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-      const isRefresh = navigationEntries.length > 0 && navigationEntries[0].type === 'reload';
-      
-      if (isRefresh && userRole) {
-        console.log('🔄 Browser refresh detected on:', location.pathname);
-        refetchRouteData(location.pathname, userRole, dispatch);
-      } else {
-        console.log('✅ Initial app load (not a refresh), using cached data');
-      }
-      
-      prevPathname.current = location.pathname;
-      return;
+    // Check if this is a browser refresh by checking navigation type
+    const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const isRefresh = navigationEntries.length > 0 && navigationEntries[0].type === 'reload';
+    
+    // Only refetch if:
+    // 1. It's a browser refresh (reload)
+    // 2. We haven't already refreshed for this component
+    // 3. User role is available
+    if (isRefresh && !hasRefreshed.current && userRole) {
+      hasRefreshed.current = true;
+      console.log('🔄 Browser refresh detected on:', location.pathname);
+      refetchRouteData(location.pathname, userRole, dispatch);
     }
 
-    // On subsequent effects, only update if pathname actually changed (navigation)
-    if (prevPathname.current !== location.pathname) {
-      console.log('🧭 Navigation detected from', prevPathname.current, 'to', location.pathname, '- NO refetch');
-      prevPathname.current = location.pathname;
-      // DO NOT refetch on navigation - only on refresh
-    }
+    // Update previous pathname for navigation tracking
+    prevPathname.current = location.pathname;
   }, [location.pathname, userRole, dispatch]);
 };
 
@@ -73,13 +61,13 @@ const refetchRouteData = async (pathname: string, userRole: 'student' | 'company
       }
     }
     
-    // Saved jobs page
+    // Saved jobs page (student only)
     else if (pathname === '/saved' && userRole === 'student') {
       console.log('💾 Refetching saved jobs...');
       await dispatch(fetchSavedJobs({ page: 1, limit: 100 }));
     }
     
-    // Applications page
+    // Applications page (both student and company)
     else if (pathname === '/applications') {
       console.log('📝 Refetching applications...');
       if (userRole === 'student') {
@@ -87,6 +75,20 @@ const refetchRouteData = async (pathname: string, userRole: 'student' | 'company
       } else if (userRole === 'company') {
         await dispatch(fetchCompanyApplications({ page: 1, limit: 100 }));
       }
+    }
+    
+    // Company applicants page
+    else if (pathname === '/company/applicants' && userRole === 'company') {
+      console.log('📝 Refetching company applicants...');
+      await dispatch(fetchCompanyApplications({ page: 1, limit: 100 }));
+    }
+    
+    // Company internships page
+    else if (pathname === '/company/internships' && userRole === 'company') {
+      console.log('💼 Refetching company internships...');
+      // Company internships are managed separately - no Redux fetch action yet
+      // The component will handle its own data fetching
+      console.log('ℹ️  Company internships managed by component');
     }
     
     // Profile pages
@@ -99,12 +101,18 @@ const refetchRouteData = async (pathname: string, userRole: 'student' | 'company
       }
     }
     
-    // Internship detail page
+    // Internship detail page (student)
     else if (pathname.startsWith('/internship/')) {
       console.log('🔍 Refetching internship details...');
       // The individual page component will handle fetching specific internship
-      // We just need to ensure the list is fresh
+      // We ensure the list is fresh for navigation
       await dispatch(fetchInternships({ page: 1, limit: 50 }));
+    }
+    
+    // Application detail page (company)
+    else if (pathname.startsWith('/applications/') && userRole === 'company') {
+      console.log('📄 Refetching application detail...');
+      await dispatch(fetchCompanyApplications({ page: 1, limit: 100 }));
     }
     
     // Search/Explore pages
